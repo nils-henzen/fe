@@ -31,8 +31,8 @@ Op system:
 
 ## Server Side:
 - SQLite DB
-    - User table that stores name and auth-key
-    - Message table that stores sender, receiver, timestamp, file path, queuedForDeletionFlag, opFlag
+    - User table that stores name and auth-key, op/admin flag
+    - Message table that stores sender, receiver, timestamp, file blob, queuedForDeletionFlag
 - HTTP Endpoint that checks for client commands and sends messages with CR(UD) REST endpoints
 Not important:
 - Cronjob to delete messages
