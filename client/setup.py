@@ -9,6 +9,9 @@ setup(
             "fe=cli.main:main",
             "fe init=cli.commands.init:init",
             "fe ping=cli.commands.ping:ping",
+            "fe fetch=cli.commands.fetch:fetch",
+            "fe read=cli.commands.read:read",
+            "fe send=cli.commands.send:send",
         ]
     },
 )
