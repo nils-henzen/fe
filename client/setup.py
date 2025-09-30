@@ -8,6 +8,7 @@ setup(
         "console_scripts": [
             "fe=cli.main:main",
             "fe init=cli.commands.init:init",
+            "fe ping=cli.commands.ping:ping",
         ]
     },
 )
