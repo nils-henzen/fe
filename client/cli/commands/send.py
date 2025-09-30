@@ -1,6 +1,7 @@
 import os
 import click
 from cli.api.client import FeApiClient
+from cli.config.manager import ConfigManager
 
 @click.command()
 @click.argument('recipients', required=True)
@@ -8,21 +9,21 @@ from cli.api.client import FeApiClient
 def send(recipients, message):
     """Send a message or file to one or more recipients. Usage: fe send [recipient1,recipient2] <message> <message> can be a file path or a quoted string."""
     recipients_list = [r.strip() for r in recipients.split(',') if r.strip()]
+    config = ConfigManager().config
+    sender_id = config.get("auth_token", "unknown")  # Or use a username if available
     client = FeApiClient()
 
-    # Check if message is a file path
     if os.path.isfile(message):
         for recipient in recipients_list:
             try:
-                result = client.send_file(recipient, message)
+                result = client.send_file(sender_id, recipient, message)
                 click.echo(f"Sent file '{message}' to {recipient}: {result}")
             except Exception as e:
                 click.echo(f"Failed to send file to {recipient}: {e}", err=True)
     else:
-        # Treat as string message
         for recipient in recipients_list:
             try:
-                result = client.send_message(recipient, message)
+                result = client.send_message(sender_id, recipient, message)
                 click.echo(f"Sent message to {recipient}: {result}")
             except Exception as e:
                 click.echo(f"Failed to send message to {recipient}: {e}", err=True)
