@@ -10,4 +10,3 @@ def ping():
         click.echo(f"Server health: {result}")
     except Exception as e:
         click.echo(f"Ping failed: {e}", err=True)
-import click
