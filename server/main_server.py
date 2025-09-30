@@ -47,8 +47,8 @@ def get_timestamp():
 
 def get_verified_user(signature, sender_id) -> t.User | None:
     user: t.User = database.fetch_user(sender_id)
-    #user.verified = user.access_key == signature # just use access key for now
-    user.verified = True # DEBUG REMOVE THIS ON PROD
+    user.verified = user.access_key == signature # just use access key for now
+    #user.verified = True # DEBUG REMOVE THIS ON PROD
     return user
 
 ### ENDPOINTS ###
@@ -92,6 +92,8 @@ def send_message():
     receiver_id = data.get("receiver_id",   "unknown")      # default to "unknown" if not provided
     message_text  = data.get("message_text","no content")   # default to "no content" if not provided
     
+    print(f"send_message called with: {data}")
+
     user: t.User = get_verified_user(signature, sender_id)
     
     if (user.verified == False):
