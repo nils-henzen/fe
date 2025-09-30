@@ -12,4 +12,4 @@ class FeApiClient:
         url = f"{self.base_url}/healthcheck"
         response = requests.get(url)
         response.raise_for_status()
-        return response.json()
+        return response.text
