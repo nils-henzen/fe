@@ -34,6 +34,12 @@ Op system:
     - User table that stores name and auth-key, op/admin flag
     - Message table that stores sender, receiver, timestamp, file blob, queuedForDeletionFlag
 - HTTP Endpoint that checks for client commands and sends messages with CR(UD) REST endpoints
+
+MVP Checklist:
+- [] GET    fetch   fetch all user messages truncated / filenames only from database and send them back to user
+- [] GET    read    read a specific message id from db and send it to user with its full contents
+- [] POST   send    add a message to database
+
 Not important:
 - Cronjob to delete messages
 - OP Right system
