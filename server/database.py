@@ -25,8 +25,7 @@ def create_tables():
     # User table
     c.execute("""
     CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY,
-        name TEXT,
+        username TEXT PRIMARY KEY,
         accesskey TEXT,
         op INTEGER
     )
@@ -36,15 +35,15 @@ def create_tables():
     c.execute("""
     CREATE TABLE IF NOT EXISTS messages (
         id INTEGER PRIMARY KEY,
-        sender_id INTEGER,
-        receiver_id INTEGER,
+        sender_id TEXT,
+        receiver_id TEXT,
         timestamp INTEGER,
         file_name TEXT,
         file_type TEXT,
         file_contents BLOB,
         queue_deletion INTEGER,
-        FOREIGN KEY(sender_id) REFERENCES users(id),
-        FOREIGN KEY(receiver_id) REFERENCES users(id)
+        FOREIGN KEY(sender_id) REFERENCES users(username),
+        FOREIGN KEY(receiver_id) REFERENCES users(username)
     )
     """)
 
