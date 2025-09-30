@@ -18,29 +18,44 @@ def main():
 def healthcheck():
     return "<h1>Fe is alive, healthy and running 🏃‍♂️</h1>"
 
-@app.route("/fetch/<string:name>", methods=["GET"])
-def fetch_messages(name):
-    return jsonify({"username": name, "messages" : ["not implemented", "not implemented"]})
+@app.route("/fetch", methods=["GET"])
+def fetch_messages():
+    # Get query parameters
+    data = request.json  # Expect JSON body
+    signature   = data.get("signature",     "unknown")      # default to "unknown" if not provided
+    sender_id   = data.get("sender_id",     "unknown")      # default to "unknown" if not provided
+    receiver_id = data.get("receiver_id",   "unknown")      # default to "unknown" if not provided
+    return jsonify({"sender_id": sender_id, "receiver_id": receiver_id, "messages" : ["not implemented", "not implemented"]})
 
-@app.route("/read/<int:message_id>", methods=["GET"])
-def read_message(msg_id):
-    return jsonify({"message_id": msg_id, "message" : "not implemented"})
+@app.route("/read", methods=["GET"])
+def read_message():
+    # Get query parameters
+    data = request.json  # Expect JSON body
+    signature   = data.get("signature",     "unknown")      # default to "unknown" if not provided
+    sender_id   = data.get("sender_id",     "unknown")      # default to "unknown" if not provided
+    message_id  = data.get("message_id",   "-1")            # default to "-1" if not provided
+
+    return jsonify({"sender_id": sender_id, "message_id": message_id, "message" : "not implemented"})
 
 @app.route("/send_message", methods=["POST"])
 def receive_message():
     data = request.json  # Expect JSON body
-    username = data.get("username")
-    message = data.get("message")
-    return jsonify({"username": username, "message": message})
+    signature   = data.get("signature",     "unknown")      # default to "unknown" if not provided
+    sender_id   = data.get("sender_id",     "unknown")      # default to "unknown" if not provided
+    receiver_id = data.get("receiver_id",   "unknown")      # default to "unknown" if not provided
+    message_text  = data.get("message_text","no content")   # default to "no content" if not provided
+    return jsonify({"sender_id": sender_id, "receiver_id": receiver_id, "message_text": message_text})
 
 @app.route("/send_file", methods=["POST"])
 def receive_file():
     data = request.json  # Expect JSON body
-    username = data.get("name")
+    signature   = data.get("signature",     "unknown")      # default to "unknown" if not provided
+    sender_id   = data.get("sender_id",     "unknown")      # default to "unknown" if not provided
+    receiver_id = data.get("receiver_id",   "unknown")      # default to "unknown" if not provided
     file_name = data.get("file_name")
     file_type = data.get("file_type")
     file_content = data.get("file_content")
-    return jsonify({"username": username,
+    return jsonify({"sender_id": sender_id, "receiver_id": receiver_id,
     "file_information": {
         "file name" : file_name,
         "file type" : file_type,
