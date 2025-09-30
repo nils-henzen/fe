@@ -1,23 +1,26 @@
 ### Handles database connection and crud updates
 
 import sqlite3
+import datatypes as t
 
-# establish DB connection
-conn = sqlite3.connect("fe_data.db")  # Creates the file if it doesn't exist
-c = conn.cursor()
 
 ## Healthcheck for database connection 
 def healthcheck():
     print("## DATABASE HEALTHCHECK ##")
-    if (conn == None or c == None):
-        print("ERROR: Connection or database cursor not initialized.")
-    else:
-        print("SUCCESS: Database connection successful")
+    #if (conn == None or c == None):
+    #    print("ERROR: Connection or database cursor not initialized.")
+    #else:
+    #    print("SUCCESS: Database connection successful")
 
 ## Create the database tables
 def create_tables():
 
     print("## CREATING DATABASE TABLES ##")
+
+
+    # establish DB connection
+    conn = sqlite3.connect("fe_data.db")  # Creates the file if it doesn't exist
+    c = conn.cursor()
 
     # foreign key support
     c.execute("PRAGMA foreign_keys = ON")
@@ -49,4 +52,145 @@ def create_tables():
 
     conn.commit()  # Save changes
 
+    conn.close() # close connection
+
     print("SUCCESS: Table creation successful")
+
+def fetch_user(username: str) -> t.User | None:
+    """
+    Fetch a user by username.
+    Returns a User object if found, else None.
+    """
+    conn = sqlite3.connect("fe_data.db")
+    c = conn.cursor()
+
+    query = """
+    SELECT username, accesskey, op
+    FROM users
+    WHERE username = ?
+    """
+
+    c.execute(query, (username,))
+    row = c.fetchone()
+    conn.close()
+
+    if row:
+        return t.User(False, row[0], row[1], row[2])
+    else:
+        return None
+
+def register_user(user: t.User):
+    """
+    Register a new user in the database.
+    """
+
+    # SQL INSERT statement
+    query = """
+    INSERT INTO users (username, accesskey, op)
+    VALUES (?, ?, ?)
+    """
+
+
+    # establish DB connection
+    conn = sqlite3.connect("fe_data.db")  # Creates the file if it doesn't exist
+    c = conn.cursor()
+
+    try:
+        c.execute(query, (user.name, user.access_key, user.op))
+        conn.commit()
+        print(f"User {user.name} registered successfully.")
+    except sqlite3.IntegrityError:
+        print(f"User {user.name} already exists.")
+    finally:
+        conn.close()
+
+def fetch_messages_for_user(user: t.User) -> list[t.Message] | None:
+    if (user.verified != True):
+       return
+    
+
+    # establish DB connection
+    conn = sqlite3.connect("fe_data.db")  # Creates the file if it doesn't exist
+    c = conn.cursor()
+
+    """
+    Retrieve all messages where the user is sender or receiver,
+    sorted by timestamp ascending, cast into Message objects.
+    """
+    query = """
+    SELECT id, sender_id, receiver_id, timestamp, file_name, file_type, file_contents, queue_deletion
+    FROM messages
+    WHERE receiver_id = ?
+    ORDER BY timestamp ASC
+    """
+    c.execute(query, (user.name,)) # comma is mandatory, its a single element tuple!
+    rows = c.fetchall()
+
+    conn.close
+
+    # Convert each row to a Message object
+    messages = [t.Message(*row) for row in rows]
+    return messages
+
+
+def save_message(message: t.Message):
+    """
+    Save a message to the database.
+    - sending_user: User object (sender)
+    - receiving_user: User object (receiver)
+    - message: Message object
+    """
+    conn = sqlite3.connect("fe_data.db")
+    c = conn.cursor()
+
+    query = """
+    INSERT INTO messages (
+        sender_id, receiver_id, timestamp,
+        file_name, file_type, file_contents,
+        queue_deletion
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    """
+
+    try:
+        c.execute(query, (
+            message.sender_id,
+            message.receiver_id,
+            message.timestamp,
+            message.file_name,
+            message.file_type,
+            message.file_contents,
+            message.queue_deletion
+        ))
+        conn.commit()
+        print(f"Message from {message.sender_id} to {message.receiver_id} saved.")
+    except sqlite3.Error as e:
+        print(f"Error saving message: {e}")
+    finally:
+        conn.close()
+
+def fetch_message_by_id(message_id: int) -> t.Message | None:
+
+    """
+    Fetch a single message by its ID.
+    Returns a Message object if found, else None.
+    """
+    conn = sqlite3.connect("fe_data.db")
+    c = conn.cursor()
+
+    query = """
+    SELECT id, sender_id, receiver_id, timestamp,
+           file_name, file_type, file_contents, queue_deletion
+    FROM messages
+    WHERE id = ?
+    """
+
+    c.execute(query, (message_id,))
+    row = c.fetchone()
+    conn.close()
+
+    if row:
+        # match constructor: message_id, sender_id, receiver_id, timestamp, file_name, file_type, file_contents, queue_deletion
+        return t.Message(*row)
+    else:
+        return None
