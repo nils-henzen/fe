@@ -6,7 +6,8 @@ setup(
     packages=find_packages(),
     entry_points={
         "console_scripts": [
-            "fe=cli.main:main"
+            "fe=cli.main:main",
+            "fe init=cli.commands.init:init",
         ]
     },
 )
