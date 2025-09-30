@@ -22,9 +22,9 @@ def healthcheck():
 def fetch_messages(name):
     return jsonify({"username": name, "messages" : ["not implemented", "not implemented"]})
 
-@app.route("/read/<string:name>", methods=["GET"])
-def read_message(name):
-    return jsonify({"username": name, "message" : "not implemented"})
+@app.route("/read/<int:message_id>", methods=["GET"])
+def read_message(msg_id):
+    return jsonify({"message_id": msg_id, "message" : "not implemented"})
 
 @app.route("/send_message", methods=["POST"])
 def receive_message():
