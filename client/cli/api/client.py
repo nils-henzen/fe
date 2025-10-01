@@ -19,7 +19,7 @@ class FeApiClient:
         headers = {"Authorization": f"Bearer {self.config['auth_token']}"}
         data = {
             "signature": signature or "unknown",
-            "sender_id": sender_id or "unknown",
+            "sender_id": sender_id or "nils",
             "receiver_id": receiver_id or "unknown"
         }
         response = requests.get(url, headers=headers, json=data)
@@ -30,8 +30,8 @@ class FeApiClient:
         url = f"{self.base_url}/read"
         headers = {"Authorization": f"Bearer {self.config['auth_token']}"}
         data = {
-            "signature": signature or "unknown",
-            "sender_id": sender_id or "unknown",
+            "signature": signature or "00000",
+            "sender_id": sender_id or "nils",
             "message_id": message_id or "-1"
         }
         response = requests.get(url, headers=headers, json=data)
@@ -42,8 +42,8 @@ class FeApiClient:
         url = f"{self.base_url}/send_message"
         headers = {"Authorization": f"Bearer {self.config['auth_token']}"}
         data = {
-            "signature": signature or "unknown",
-            "sender_id": sender_id or "unknown",
+            "signature": signature or "0000",
+            "sender_id": sender_id or "nils",
             "receiver_id": receiver_id or "unknown",
             "message_text": message_text or "no content"
         }
@@ -60,7 +60,7 @@ class FeApiClient:
         with open(file_path, "rb") as f:
             file_content = base64.b64encode(f.read()).decode()
         data = {
-            "signature": signature or "unknown",
+            "signature": signature or "00000",
             "sender_id": sender_id or "unknown",
             "receiver_id": receiver_id or "unknown",
             "file_name": file_name,
