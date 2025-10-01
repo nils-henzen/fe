@@ -1,7 +1,7 @@
 ### Handles database connection and crud updates
 
 import sqlite3
-import datatypes as t
+import shared.datatypes as t
 
 
 ## Healthcheck for database connection 
@@ -104,33 +104,67 @@ def register_user(user: t.User):
     finally:
         conn.close()
 
-def fetch_messages_for_user(user: t.User) -> list[t.Message] | None:
-    if (user.verified != True):
-       return
-    
+def fetch_messages_for_user(user: t.User) -> t.Messages | None:
+    if not user.verified:
+        return None
 
-    # establish DB connection
-    conn = sqlite3.connect("fe_data.db")  # Creates the file if it doesn't exist
+    conn = sqlite3.connect("fe_data.db")
     c = conn.cursor()
 
-    """
-    Retrieve all messages where the user is sender or receiver,
-    sorted by timestamp ascending, cast into Message objects.
-    """
     query = """
-    SELECT id, sender_id, receiver_id, timestamp, file_name, file_type, file_contents, queue_deletion
+    SELECT id, sender_id, receiver_id, timestamp, file_name, file_type, queue_deletion
     FROM messages
     WHERE receiver_id = ?
     ORDER BY timestamp ASC
     """
-    c.execute(query, (user.name,)) # comma is mandatory, its a single element tuple!
+    c.execute(query, (user.name,))
     rows = c.fetchall()
+    conn.close()
 
-    conn.close
+    # fill file_contents with None explicitly
+    messages = t.Messages([
+        t.Message(
+            message_id=row[0],
+            sender_id=row[1],
+            receiver_id=row[2],
+            timestamp=row[3],
+            file_name=row[4][:50] if row[4] else None,
+            file_type=row[5],
+            file_contents=None,      # skipped
+            queue_deletion=row[6]
+        )
+        for row in rows
+    ])
 
-    # Convert each row to a Message object
-    messages = [t.Message(*row) for row in rows]
     return messages
+
+
+
+def fetch_message_by_id(message_id: int) -> t.Message | None:
+
+    """
+    Fetch a single message by its ID.
+    Returns a Message object if found, else None.
+    """
+    conn = sqlite3.connect("fe_data.db")
+    c = conn.cursor()
+
+    query = """
+    SELECT id, sender_id, receiver_id, timestamp,
+           file_name, file_type, file_contents, queue_deletion
+    FROM messages
+    WHERE id = ?
+    """
+
+    c.execute(query, (message_id,))
+    row = c.fetchone()
+    conn.close()
+
+    if row:
+        # match constructor: message_id, sender_id, receiver_id, timestamp, file_name, file_type, file_contents, queue_deletion
+        return t.Message(*row)
+    else:
+        return None
 
 
 def save_message(message: t.Message):
@@ -168,29 +202,3 @@ def save_message(message: t.Message):
         print(f"Error saving message: {e}")
     finally:
         conn.close()
-
-def fetch_message_by_id(message_id: int) -> t.Message | None:
-
-    """
-    Fetch a single message by its ID.
-    Returns a Message object if found, else None.
-    """
-    conn = sqlite3.connect("fe_data.db")
-    c = conn.cursor()
-
-    query = """
-    SELECT id, sender_id, receiver_id, timestamp,
-           file_name, file_type, file_contents, queue_deletion
-    FROM messages
-    WHERE id = ?
-    """
-
-    c.execute(query, (message_id,))
-    row = c.fetchone()
-    conn.close()
-
-    if row:
-        # match constructor: message_id, sender_id, receiver_id, timestamp, file_name, file_type, file_contents, queue_deletion
-        return t.Message(*row)
-    else:
-        return None

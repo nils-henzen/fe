@@ -10,3 +10,5 @@
 - Data is stored as a BLOB, not as a filepath
 - The server runs on port `26834`
 - each request gets a signature, that is calculated from the `access_key` hashed via ...
+- user messages are stored using the `FETXT` MIME. file contents are empty, only the file_name contains the message. this is to make the query for multiple messages more effective
+- when retrieving multiple messages using `fetch`, the `file_contents` are **NOT SENT**, only `file_name`s. Also file_names are truncated to `50` characters

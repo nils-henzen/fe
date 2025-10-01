@@ -6,7 +6,7 @@ Used to simply and fast send messages or files to your buddy!
 
 ## Client Side / Local commands: 
 
-- Fe (fetch) > fetches for [unread/new] messages and displays previews (max 100 characters) in a table with ids
+- Fe (fetch) > fetches for [unread/new] messages and displays previews (max 50 characters) in a table with ids
 - Fe read [id] > displays message and gets marked for deletion on the server
 - Fe send [username;username2] [“string”.txt or file.pdf]
 - Fe explore > opens file system folder with stored messages and files
