@@ -1,5 +1,5 @@
 import click
-from cli.api.client import FeApiClient
+from api.client import FeApiClient
 
 @click.command()
 def ping():

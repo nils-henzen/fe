@@ -5,8 +5,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 from shared import signature as s
 from tabulate import tabulate
 from datetime import datetime, timezone
-from cli.api.client import FeApiClient
-from cli.config.manager import ConfigManager
+from api.client import FeApiClient
+from config.manager import ConfigManager
 
 @click.command()
 def fetch():

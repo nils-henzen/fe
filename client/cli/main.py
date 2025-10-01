@@ -1,9 +1,9 @@
 import click
-from cli.commands.init import init
-from cli.commands.ping import ping
-from cli.commands.fetch import fetch
-from cli.commands.read import read
-from cli.commands.send import send
+from commands.init import init
+from commands.ping import ping
+from commands.fetch import fetch
+from commands.read import read
+from commands.send import send
 
 BANNER = r"""
             ______                  ______                                 

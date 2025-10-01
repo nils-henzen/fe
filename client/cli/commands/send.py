@@ -1,7 +1,7 @@
 import os
 import click
-from cli.api.client import FeApiClient
-from cli.config.manager import ConfigManager
+from api.client import FeApiClient
+from config.manager import ConfigManager
 
 @click.command()
 @click.argument('recipients', required=True)

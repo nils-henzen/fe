@@ -1,3 +1,6 @@
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import database as db
 import shared.signature as s
 import shared.datatypes as t

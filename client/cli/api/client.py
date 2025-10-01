@@ -1,6 +1,6 @@
 import click
 import requests
-from cli.config.manager import ConfigManager
+from config.manager import ConfigManager
 
 class FeApiClient:
     def __init__(self, config_manager=None):
