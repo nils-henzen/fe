@@ -1,4 +1,5 @@
 import database as db
+import shared.signature as s
 import shared.datatypes as t
 import time
 from flask import Flask, request, jsonify
@@ -17,9 +18,10 @@ def main():
 def get_timestamp():
     return int(time.time())
 
-def get_verified_user(signature, sender_id) -> t.User | None:
+def get_verified_user(sender_id, key, signature) -> t.User | None:
     user: t.User = db.fetch_user(sender_id)
-    user.verified = user.access_key == signature # just use access key for now
+    secret: str = user.access_key
+    user.verified = s.verify_signature(user.name, key, secret, signature)
     return user
 
 ### ENDPOINTS ###
@@ -33,6 +35,7 @@ def healthcheck():
 
 ##
 ## Retrieve all messages for a single user
+## Signature key is FTCH
 ##
 @app.route("/fetch", methods=["GET"])
 def fetch_messages():
@@ -41,12 +44,13 @@ def fetch_messages():
     signature   = data.get("signature",     "unknown")      # default to "unknown" if not provided
     sender_id   = data.get("sender_id",     "unknown")      # default to "unknown" if not provided
 
-    user: t.User = get_verified_user(signature, sender_id)
+    user: t.User = get_verified_user(sender_id, "FTCH", signature)
     messages: t.Messages = db.fetch_messages_for_user(user)
     return messages.serialize()
 
 ##
 ## Retrieve a SINGLE message for a user
+## Signature key is message_id
 ##
 @app.route("/read", methods=["GET"])
 def read_message():
@@ -56,7 +60,7 @@ def read_message():
     sender_id   = data.get("sender_id",     "unknown")      # default to "unknown" if not provided
     message_id  = data.get("message_id",   "-1")            # default to "-1" if not provided
     
-    user: t.User = get_verified_user(signature, sender_id)
+    user: t.User = get_verified_user(signature, message_id, sender_id)
 
     if (user.verified == False):
         return jsonify({"status" : 403, "message" : "signature dosen't match. user couldn't be verified"})
@@ -66,6 +70,7 @@ def read_message():
 
 ##
 ## SAVE a MESSAGE to the database for the user
+## signature key is message_text
 ##
 @app.route("/send_message", methods=["POST"])
 def send_message():
@@ -77,7 +82,7 @@ def send_message():
     
     print(f"send_message called with: {data}")
 
-    user: t.User = get_verified_user(signature, sender_id)
+    user: t.User = get_verified_user(sender_id, message_text, signature)
     
     if (user.verified == False):
         return jsonify({"status" : 403, "message" : "signature dosen't match. user couldn't be verified"})
@@ -89,6 +94,7 @@ def send_message():
 
 ##
 ## SAVE a FILE to the database for the user
+## Signature key is file_name+file_content
 ##
 @app.route("/send_file", methods=["POST"])
 def send_file():
@@ -100,7 +106,7 @@ def send_file():
     file_type = data.get("file_type")
     file_content = data.get("file_content")
         
-    user: t.User = get_verified_user(signature, sender_id)
+    user: t.User = get_verified_user(sender_id, file_name+file_content, signature)
     
     if (user.verified == False):
         return jsonify({"status" : 403, "message" : "signature dosen't match. user couldn't be verified"})
