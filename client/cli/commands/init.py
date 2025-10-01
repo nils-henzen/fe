@@ -11,6 +11,7 @@ def init():
     default_config = {
         "server_ip": "127.0.0.1",
         "server_port": 26834,
+        "sender_name": "",
         "auth_token": "",
         "storage_path": os.path.join(config_dir, "messages")
     }
