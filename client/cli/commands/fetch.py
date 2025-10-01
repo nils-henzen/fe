@@ -1,4 +1,8 @@
 import click
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+from shared import signature as s
 from tabulate import tabulate
 from datetime import datetime, timezone
 from cli.api.client import FeApiClient
@@ -9,8 +13,10 @@ def fetch():
     """Fetch unread messages from the server."""
     try:
         config = ConfigManager().config
-        signature = config.get("auth_token", "unknown")
+        secret = config.get("auth_token", "unknown")
         sender_id = config.get("sender_name", "unknown")
+        key = "FTCH"
+        signature = s.sign_message(sender_id, key, secret)
         client = FeApiClient()
         result = client.fetch(signature=signature, sender_id=sender_id)
         click.echo(f"Fetched messages successfully!")
