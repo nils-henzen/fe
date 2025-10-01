@@ -87,7 +87,7 @@ def send_message():
     if (user.verified == False):
         return jsonify({"status" : 403, "message" : "signature dosen't match. user couldn't be verified"})
     
-    message: t.Message = t.Message(0, sender_id, receiver_id, get_timestamp(), "Message", "FETXT", message_text, False)
+    message: t.Message = t.Message(0, sender_id, receiver_id, get_timestamp(), message_text, "FETXT", None, False)
     db.save_message(message)
     return jsonify({"status" : 200, "message" : "Message was sent."})
 
