@@ -22,7 +22,17 @@ def get_timestamp():
     return int(time.time())
 
 def get_verified_user(sender_id, key, signature) -> t.User | None:
+
+    if (sender_id == "unknown" or key == "unknown" or signature == "unknown"):
+        print(f"VERIFY USER: Invalid arguments. At least one is unknown. Sender ID {sender_id}, Key {key}, Signature {signature}")
+        return None
+
     user: t.User = db.fetch_user(sender_id)
+    
+    if user == None:
+        print("VERIFY USER: Invalid user: " + sender_id)
+        return None
+    
     secret: str = user.access_key
     user.verified = s.verify_signature(user.name, key, secret, signature)
     return user
@@ -61,9 +71,9 @@ def read_message():
     data = request.json  # Expect JSON body
     signature   = data.get("signature",     "unknown")      # default to "unknown" if not provided
     sender_id   = data.get("sender_id",     "unknown")      # default to "unknown" if not provided
-    message_id  = data.get("message_id",   "-1")            # default to "-1" if not provided
+    message_id  = data.get("message_id",    "unknown")            # default to "-1" if not provided
     
-    user: t.User = get_verified_user(signature, message_id, sender_id)
+    user: t.User = get_verified_user(sender_id, message_id, signature)
 
     if (user.verified == False):
         return jsonify({"status" : 403, "message" : "signature dosen't match. user couldn't be verified"})
@@ -73,7 +83,7 @@ def read_message():
 
 ##
 ## SAVE a MESSAGE to the database for the user
-## signature key is message_text
+## signature key is message_text[:32]
 ##
 @app.route("/send_message", methods=["POST"])
 def send_message():
@@ -85,7 +95,7 @@ def send_message():
     
     print(f"send_message called with: {data}")
 
-    user: t.User = get_verified_user(sender_id, message_text, signature)
+    user: t.User = get_verified_user(sender_id, message_text[:32], signature)
     
     if (user.verified == False):
         return jsonify({"status" : 403, "message" : "signature dosen't match. user couldn't be verified"})
@@ -97,7 +107,7 @@ def send_message():
 
 ##
 ## SAVE a FILE to the database for the user
-## Signature key is file_name+file_content
+## Signature key is file_name[:16]+file_content[:16]
 ##
 @app.route("/send_file", methods=["POST"])
 def send_file():
@@ -109,7 +119,7 @@ def send_file():
     file_type = data.get("file_type")
     file_content = data.get("file_content")
         
-    user: t.User = get_verified_user(sender_id, file_name+file_content, signature)
+    user: t.User = get_verified_user(sender_id, file_name[:16]+file_content[:16], signature)
     
     if (user.verified == False):
         return jsonify({"status" : 403, "message" : "signature dosen't match. user couldn't be verified"})

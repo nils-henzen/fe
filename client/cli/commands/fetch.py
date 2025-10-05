@@ -13,9 +13,9 @@ def fetch():
     """Fetch unread messages from the server."""
     try:
         config = ConfigManager().config
-        secret = config.get("auth_token", "unknown")
         sender_id = config.get("sender_name", "unknown")
         key = "FTCH"
+        secret = config.get("auth_token", "unknown")
         signature = s.sign_message(sender_id, key, secret)
         client = FeApiClient()
         result = client.fetch(signature=signature, sender_id=sender_id)
