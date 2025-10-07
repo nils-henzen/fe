@@ -5,10 +5,12 @@ import database as db
 import shared.signature as s
 import shared.datatypes as t
 import time
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, abort
 
 app = Flask(__name__)
 
+VERIFICATION_REQUIRED = False # Skips signature validation check:     TURN OFF IN PRODUCTION!
+ 
 def main():
     print("## Server started... ##")
     db.healthcheck()
@@ -34,7 +36,13 @@ def get_verified_user(sender_id, key, signature) -> t.User | None:
         return None
     
     secret: str = user.access_key
-    user.verified = s.verify_signature(user.name, key, secret, signature)
+    
+    # verify the user
+    if VERIFICATION_REQUIRED:
+        user.verified = s.verify_signature(user.name, key, secret, signature)
+    else:
+        user.verified = True
+
     return user
 
 ### ENDPOINTS ###
@@ -47,19 +55,28 @@ def healthcheck():
     return "<h1>Fe is alive, healthy and running 🏃‍♂️</h1>"
 
 ##
-## Retrieve all messages for a single user
+## Retrieve all messages (sent/inbox) for a single user
+## NOW INCLUDES messages the user also SENT to other users!
 ## Signature key is FTCH
 ##
 @app.route("/fetch", methods=["GET"])
 def fetch_messages():
     # Get query parameters
-    data = request.json  # Expect JSON body
+    data = request.args  # Expect arguments for GET (not a json body)
     signature   = data.get("signature",     "unknown")      # default to "unknown" if not provided
     sender_id   = data.get("sender_id",     "unknown")      # default to "unknown" if not provided
 
-    user: t.User = get_verified_user(sender_id, "FTCH", signature)
-    messages: t.Messages = db.fetch_messages_for_user(user)
-    return messages.serialize()
+    print(f"FETCH: DATA RECEIVED %s", data)
+
+    try:
+        user: t.User = get_verified_user(sender_id, "FTCH", signature)
+        messages: t.Messages  = db.fetch_messages_for_user(user)
+        response = messages.serialize()
+        print(response)
+        return response
+    except:
+        print("FETCH: User couldn't be verified")
+        abort(403, description="FETCH: User couldn't be verified")
 
 ##
 ## Retrieve a SINGLE message for a user
@@ -68,7 +85,7 @@ def fetch_messages():
 @app.route("/read", methods=["GET"])
 def read_message():
     # Get query parameters
-    data = request.json  # Expect JSON body
+    data = request.args  # Expect args
     signature   = data.get("signature",     "unknown")      # default to "unknown" if not provided
     sender_id   = data.get("sender_id",     "unknown")      # default to "unknown" if not provided
     message_id  = data.get("message_id",    "unknown")            # default to "-1" if not provided

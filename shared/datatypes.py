@@ -47,7 +47,7 @@ class Message:
 
     def to_dict(self) -> dict:
         return {
-            "message_id": self.message_id,
+            "id": self.message_id,
             "sender_id": self.sender_id,
             "receiver_id": self.receiver_id,
             "timestamp": self.timestamp,
@@ -77,7 +77,7 @@ class Message:
             except Exception:
                 pass
         return Message(
-            message_id=obj["message_id"],
+            message_id=obj["id"],
             sender_id=obj["sender_id"],
             receiver_id=obj["receiver_id"],
             timestamp=obj["timestamp"],

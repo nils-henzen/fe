@@ -118,10 +118,10 @@ def fetch_messages_for_user(user: t.User) -> t.Messages | None:
     query = """
     SELECT id, sender_id, receiver_id, timestamp, file_name, file_type, queue_deletion
     FROM messages
-    WHERE receiver_id = ?
+    WHERE receiver_id = ? OR sender_id = ?
     ORDER BY timestamp ASC
     """
-    c.execute(query, (user.name,))
+    c.execute(query, (user.name,user.name))
     rows = c.fetchall()
     conn.close()
 
