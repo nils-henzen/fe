@@ -23,6 +23,7 @@ public class TrayManager
     private HashSet<int> _seenMessageIds = new();
     private ComposeWindow? _composeWindow;
     private MessagesWindow? _messagesWindow;
+    private WindowNotificationManager? _notificationManager;
 
     public TrayManager(IClassicDesktopStyleApplicationLifetime lifetime)
     {
@@ -64,6 +65,16 @@ public class TrayManager
         menu.Add(exitItem);
 
         _trayIcon.Menu = menu;
+
+        // Setup notification manager with main window if available
+        if (_lifetime.MainWindow != null)
+        {
+            _notificationManager = new WindowNotificationManager(_lifetime.MainWindow)
+            {
+                Position = NotificationPosition.TopRight,
+                MaxItems = 3
+            };
+        }
 
         // Start polling
         StartPolling();
@@ -146,7 +157,10 @@ public class TrayManager
 
     private void ShowNotification(string title, string message)
     {
-        _trayIcon.ShowNotification(new Notification(title, message, NotificationType.Information));
+        if (_notificationManager != null)
+        {
+            _notificationManager.Show(new Notification(title, message, NotificationType.Information));
+        }
     }
 
     private void ShowComposeWindow()
@@ -196,4 +210,3 @@ public class TrayManager
         _lifetime.Shutdown();
     }
 }
-
