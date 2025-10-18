@@ -18,7 +18,7 @@ def main():
 
     print("## Server initializing endpoints ##")
     #unit_tests()
-    app.run(host="0.0.0.0", port=26834, debug=True)
+    app.run(host="0.0.0.0", port=26834, debug=False)
 
 def get_timestamp():
     return int(time.time())
