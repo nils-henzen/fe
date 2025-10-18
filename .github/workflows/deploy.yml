@@ -3,6 +3,7 @@ name: fe build and deploy
 on:
   push:
     branches: [ "main", "server-docker" ]
+  workflow_dispatch:
 
 jobs:
   build:
