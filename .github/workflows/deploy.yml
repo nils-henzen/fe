@@ -43,4 +43,5 @@ jobs:
             docker pull $IMAGE_NAME
             docker stop fe || true
             docker rm fe || true
-            docker run -d --name fe -p ${{ github.SERVER_PORT }}:${{ github.SERVER_PORT }} $IMAGE_NAME
+            docker rmi $IMAGE_NAME || true
+            docker run -d --name fe -p ${{ secrets.SERVER_PORT }}:${{ secrets.SERVER_PORT }} $IMAGE_NAME
