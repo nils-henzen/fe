@@ -40,8 +40,8 @@ jobs:
           script: |
             IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/fe:latest
             echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            docker pull $IMAGE_NAME
             docker stop fe || true
             docker rm fe || true
             docker rmi ghcr.io/${{ github.repository_owner }}/fe || true
+            docker pull $IMAGE_NAME
             docker run -d --name fe -p ${{ secrets.SERVER_PORT }}:${{ secrets.SERVER_PORT }} $IMAGE_NAME

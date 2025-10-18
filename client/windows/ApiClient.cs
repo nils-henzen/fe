@@ -2,11 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Json;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using FeChat;
 
 namespace FeChat;
+
 
 public class Message
 {
@@ -20,6 +21,7 @@ public class Message
     public string ReceiverId { get; set; } = "";
 
     [JsonPropertyName("timestamp")]
+    [JsonConverter(typeof(FlexibleStringConverter))]
     public string Timestamp { get; set; } = "";
 
     [JsonPropertyName("file_name")]
@@ -32,6 +34,7 @@ public class Message
     public string? FileContents { get; set; }
 
     [JsonPropertyName("queue_deletion")]
+    [JsonConverter(typeof(FlexibleBoolConverter))]
     public bool QueueDeletion { get; set; }
 
     public bool IsTextMessage => FileType?.StartsWith("text/") == true;
@@ -45,7 +48,7 @@ public class ApiClient
 {
     private readonly HttpClient _httpClient;
     private readonly ConfigManager _configManager;
-    private string BaseUrl => $"http://{_configManager.GetConfig().ServerIp}:{_configManager.GetConfig().ServerPort}";
+    private string BaseUrl => $"http://{_configManager.GetConfig().ServerIp}:{_configManager.GetConfig().ServerPort.ToString()}";
 
     public ApiClient(ConfigManager configManager)
     {
@@ -114,4 +117,3 @@ public class ApiClient
         }
     }
 }
-

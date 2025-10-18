@@ -28,12 +28,24 @@ public class ConfigManager
 
     public ConfigManager()
     {
-        var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        var appFolder = Path.Combine(appDataPath, "FeChat");
+        var userProfilePath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var appFolder = Path.Combine(userProfilePath, ".fe");
         Directory.CreateDirectory(appFolder);
         _configPath = Path.Combine(appFolder, "config.json");
 
+        EnsureConfigExists();
         LoadConfig();
+    }
+
+    private void EnsureConfigExists()
+    {
+        if (!File.Exists(_configPath))
+        {
+            var defaultConfig = new AppConfig();
+            var options = new JsonSerializerOptions { WriteIndented = true };
+            var json = JsonSerializer.Serialize(defaultConfig, options);
+            File.WriteAllText(_configPath, json);
+        }
     }
 
     private void LoadConfig()
@@ -73,5 +85,23 @@ public class ConfigManager
     }
 
     public AppConfig GetConfig() => _config ?? new AppConfig();
-}
 
+    public void OpenConfigInEditor()
+    {
+        try
+        {
+            if (!File.Exists(_configPath))
+            {
+                EnsureConfigExists();
+            }
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = _configPath,
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+        }
+    }
+}

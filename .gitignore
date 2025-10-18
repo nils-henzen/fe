@@ -119,6 +119,7 @@ dmypy.json
 
 #Pycharm IDE
 .idea
+client/windows/.idea
 
 net8.0
 obj
