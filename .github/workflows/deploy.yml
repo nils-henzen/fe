@@ -43,5 +43,5 @@ jobs:
             docker pull $IMAGE_NAME
             docker stop fe || true
             docker rm fe || true
-            docker rmi $IMAGE_NAME || true
+            docker rmi ghcr.io/${{ github.repository_owner }}/fe || true
             docker run -d --name fe -p ${{ secrets.SERVER_PORT }}:${{ secrets.SERVER_PORT }} $IMAGE_NAME
