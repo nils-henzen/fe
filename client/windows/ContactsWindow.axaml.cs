@@ -63,17 +63,9 @@ public partial class ContactsWindow : Window
             _contactsListBox.SelectionChanged += ContactsListBox_SelectionChanged;
     }
 
-    private void NewChatButton_Click(object? sender, RoutedEventArgs e)
+    private async void NewChatButton_Click(object? sender, RoutedEventArgs e)
     {
-        // Show compose window for new chat
-        var composeWindow = new ComposeWindow(_apiClient, _configManager);
-        composeWindow.MessageSent += (s, contactId) =>
-        {
-            // Refresh contacts and open chat with the new contact
-            _ = LoadContactsAsync();
-            OpenChatWindow(contactId);
-        };
-        composeWindow.Show();
+        // Logic for new chat button click
     }
 
     private void ContactsListBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
@@ -186,4 +178,3 @@ public partial class ContactsWindow : Window
             _statusTextBlock.Text = status;
     }
 }
-

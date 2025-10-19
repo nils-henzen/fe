@@ -21,8 +21,6 @@ public class TrayManager
     private readonly ConfigManager _configManager;
     private Timer? _pollingTimer;
     private HashSet<int> _seenMessageIds = new();
-    private ComposeWindow? _composeWindow;
-    private MessagesWindow? _messagesWindow;
     private MainChatWindow? _mainChatWindow;
     private WindowNotificationManager? _notificationManager;
 
@@ -55,16 +53,6 @@ public class TrayManager
         menu.Add(checkMessagesItem);
 
         menu.Add(new NativeMenuItemSeparator());
-
-        var viewMessagesItem = new NativeMenuItem("View All Messages");
-        viewMessagesItem.Click += (_, _) => ShowMessagesWindow();
-        menu.Add(viewMessagesItem);
-
-        menu.Add(new NativeMenuItemSeparator());
-
-        var configItem = new NativeMenuItem("Settings");
-        configItem.Click += (_, _) => ShowSettings();
-        menu.Add(configItem);
 
         var exitItem = new NativeMenuItem("Exit");
         exitItem.Click += (_, _) => Exit();
@@ -188,46 +176,6 @@ public class TrayManager
             _mainChatWindow.Activate();
             _ = _mainChatWindow.LoadContactsAsync();
         }
-    }
-
-    private void ShowComposeWindow()
-    {
-        if (_composeWindow == null || !_composeWindow.IsVisible)
-        {
-            _composeWindow = new ComposeWindow(_apiClient, _configManager);
-            _composeWindow.Closed += (s, e) => _composeWindow = null;
-            _composeWindow.Show();
-        }
-        else
-        {
-            _composeWindow.Activate();
-        }
-    }
-
-    private void ShowMessagesWindow()
-    {
-        if (_messagesWindow == null || !_messagesWindow.IsVisible)
-        {
-            _messagesWindow = new MessagesWindow(_apiClient, _configManager);
-            _messagesWindow.Closed += (s, e) => _messagesWindow = null;
-            _messagesWindow.Show();
-        }
-        else
-        {
-            _messagesWindow.Activate();
-        }
-    }
-
-    private void ShowSettings()
-    {
-        var config = _configManager.GetConfig();
-        var message = $"Current Settings:\n\n" +
-                     $"Server: {config.ServerIp}:{config.ServerPort}\n" +
-                     $"User ID: {config.UserId}\n" +
-                     $"Polling Interval: {_configManager.PollingIntervalSeconds}s\n\n" +
-                     $"To change settings, edit the config file.";
-
-        ShowNotification("Settings", message);
     }
 
     private void Exit()

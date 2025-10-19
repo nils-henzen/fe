@@ -315,6 +315,9 @@
                     </ItemsControl>
                 </ScrollViewer>
 
+                <!-- Compose Panel (hidden by default) -->
+                <local:ComposePanel Name="ComposePanel" Grid.Row="1" IsVisible="False"/>
+
                 <!-- Input Area -->
                 <Border Grid.Row="2"
                         Name="InputAreaBorder"

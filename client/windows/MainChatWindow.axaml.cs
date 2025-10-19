@@ -29,6 +29,7 @@ public partial class MainChatWindow : Window
     private TextBlock? _chatContactInitialText;
     private Border? _titleBar;
     private Button? _closeButton;
+    private ComposePanel? _composePanel;
     
     private ObservableCollection<Contact> _contacts = new();
     private ObservableCollection<ChatMessage> _messages = new();
@@ -64,6 +65,7 @@ public partial class MainChatWindow : Window
         _chatContactInitialText = this.FindControl<TextBlock>("ChatContactInitialText");
         _titleBar = this.FindControl<Border>("TitleBar");
         _closeButton = this.FindControl<Button>("CloseButton");
+        _composePanel = this.FindControl<ComposePanel>("ComposePanel");
 
         if (_contactsListBox != null)
             _contactsListBox.ItemsSource = _contacts;
@@ -76,6 +78,11 @@ public partial class MainChatWindow : Window
     {
         if (_newChatButton != null)
             _newChatButton.Click += NewChatButton_Click;
+        if (_composePanel != null)
+        {
+            _composePanel.SendClicked += ComposePanel_SendClicked;
+            _composePanel.CancelClicked += ComposePanel_CancelClicked;
+        }
 
         if (_refreshButton != null)
             _refreshButton.Click += RefreshButton_Click;
@@ -135,65 +142,53 @@ public partial class MainChatWindow : Window
 
     private void NewChatButton_Click(object? sender, RoutedEventArgs e)
     {
-        ShowNewChatDialog();
+        // Hide chat/message UI and show compose panel
+        if (_chatHeaderBorder != null) _chatHeaderBorder.IsVisible = false;
+        if (_emptyStatePanel != null) _emptyStatePanel.IsVisible = false;
+        if (_messageScrollViewer != null) _messageScrollViewer.IsVisible = false;
+        if (_inputAreaBorder != null) _inputAreaBorder.IsVisible = false;
+        if (_composePanel != null)
+        {
+            _composePanel.Clear();
+            _composePanel.IsVisible = true;
+        }
     }
 
-    private async void ShowNewChatDialog()
+    private void ComposePanel_SendClicked(object? sender, (string recipient, string message) args)
     {
-        var dialog = new Window
-        {
-            Title = "New Chat",
-            Width = 400,
-            Height = 200,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            CanResize = false,
-            ShowInTaskbar = false
-        };
+        // Hide compose panel and restore chat/message UI
+        if (_composePanel != null) _composePanel.IsVisible = false;
+        ShowChatUI(args.recipient);
+        // Optionally, send the message to the backend here
+        // For now, just open the chat with the new contact
+    }
 
-        var stack = new StackPanel { Margin = new Thickness(20), Spacing = 15 };
+    private void ComposePanel_CancelClicked(object? sender, EventArgs e)
+    {
+        // Hide compose panel and restore chat/message UI
+        if (_composePanel != null) _composePanel.IsVisible = false;
+        ShowDefaultUI();
+    }
 
-        stack.Children.Add(new TextBlock
-        {
-            Text = "Enter contact ID:",
-            FontSize = 14,
-            Foreground = Avalonia.Media.Brushes.Black
-        });
+    private void ShowChatUI(string contactId)
+    {
+        // Show chat UI for the given contact
+        if (_chatHeaderBorder != null) _chatHeaderBorder.IsVisible = true;
+        if (_messageScrollViewer != null) _messageScrollViewer.IsVisible = true;
+        if (_inputAreaBorder != null) _inputAreaBorder.IsVisible = true;
+        if (_emptyStatePanel != null) _emptyStatePanel.IsVisible = false;
+        // Set contact info, load messages, etc.
+        _currentContactId = contactId;
+        // ...existing logic to load messages for contactId...
+    }
 
-        var contactIdBox = new TextBox
-        {
-            Watermark = "Contact ID",
-            FontSize = 14
-        };
-        stack.Children.Add(contactIdBox);
-
-        var buttonPanel = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            HorizontalAlignment = HorizontalAlignment.Right,
-            Spacing = 10,
-            Margin = new Thickness(0, 10, 0, 0)
-        };
-
-        var cancelBtn = new Button { Content = "Cancel", Width = 80 };
-        var okBtn = new Button { Content = "OK", Width = 80 };
-
-        cancelBtn.Click += (s, e) => dialog.Close();
-        okBtn.Click += async (s, e) =>
-        {
-            var contactId = contactIdBox.Text?.Trim();
-            if (!string.IsNullOrEmpty(contactId))
-            {
-                dialog.Close();
-                await OpenChat(contactId);
-            }
-        };
-
-        buttonPanel.Children.Add(cancelBtn);
-        buttonPanel.Children.Add(okBtn);
-        stack.Children.Add(buttonPanel);
-
-        dialog.Content = stack;
-        await dialog.ShowDialog(this);
+    private void ShowDefaultUI()
+    {
+        // Show empty state or last selected chat
+        if (_emptyStatePanel != null) _emptyStatePanel.IsVisible = true;
+        if (_chatHeaderBorder != null) _chatHeaderBorder.IsVisible = false;
+        if (_messageScrollViewer != null) _messageScrollViewer.IsVisible = false;
+        if (_inputAreaBorder != null) _inputAreaBorder.IsVisible = false;
     }
 
     private async void RefreshButton_Click(object? sender, RoutedEventArgs e)
