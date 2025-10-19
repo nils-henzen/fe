@@ -30,10 +30,14 @@ public partial class MainChatWindow : Window
     private Border? _titleBar;
     private Button? _closeButton;
     private ComposePanel? _composePanel;
-    
+    private Button? _selectFileButton;
+    private Button? _pasteFileButton;
+    private TextBlock? _selectedFileTextBlock;
+
     private ObservableCollection<Contact> _contacts = new();
     private ObservableCollection<ChatMessage> _messages = new();
     private string? _currentContactId;
+    private string? _selectedFilePath;
 
     public MainChatWindow(ApiClient apiClient, ConfigManager configManager)
     {
@@ -66,6 +70,9 @@ public partial class MainChatWindow : Window
         _titleBar = this.FindControl<Border>("TitleBar");
         _closeButton = this.FindControl<Button>("CloseButton");
         _composePanel = this.FindControl<ComposePanel>("ComposePanel");
+        _selectFileButton = this.FindControl<Button>("SelectFileButton");
+        _pasteFileButton = this.FindControl<Button>("PasteFileButton");
+        _selectedFileTextBlock = this.FindControl<TextBlock>("SelectedFileTextBlock");
 
         if (_contactsListBox != null)
             _contactsListBox.ItemsSource = _contacts;
@@ -81,6 +88,7 @@ public partial class MainChatWindow : Window
         if (_composePanel != null)
         {
             _composePanel.SendClicked += ComposePanel_SendClicked;
+            _composePanel.SendFileClicked += ComposePanel_SendFileClicked;
             _composePanel.CancelClicked += ComposePanel_CancelClicked;
         }
 
@@ -98,6 +106,11 @@ public partial class MainChatWindow : Window
 
         if (_closeButton != null)
             _closeButton.Click += (_, _) => Hide();
+
+        if (_selectFileButton != null)
+            _selectFileButton.Click += OnSelectFileClicked;
+        if (_pasteFileButton != null)
+            _pasteFileButton.Click += OnPasteFileClicked;
 
         // Make title bar draggable
         if (_titleBar != null)
@@ -154,13 +167,25 @@ public partial class MainChatWindow : Window
         }
     }
 
-    private void ComposePanel_SendClicked(object? sender, (string recipient, string message) args)
+    private async void ComposePanel_SendClicked(object? sender, (string recipient, string message) args)
     {
         // Hide compose panel and restore chat/message UI
         if (_composePanel != null) _composePanel.IsVisible = false;
         ShowChatUI(args.recipient);
-        // Optionally, send the message to the backend here
-        // For now, just open the chat with the new contact
+        // Send the text message to the backend
+        if (!string.IsNullOrWhiteSpace(args.recipient) && !string.IsNullOrWhiteSpace(args.message))
+        {
+            var success = await _apiClient.SendMessageAsync(args.recipient, args.message);
+            if (success)
+            {
+                _composePanel?.Clear();
+                // Optionally refresh messages or show feedback
+            }
+            else
+            {
+                // Optionally show error feedback
+            }
+        }
     }
 
     private void ComposePanel_CancelClicked(object? sender, EventArgs e)
@@ -168,6 +193,22 @@ public partial class MainChatWindow : Window
         // Hide compose panel and restore chat/message UI
         if (_composePanel != null) _composePanel.IsVisible = false;
         ShowDefaultUI();
+    }
+
+    private async void ComposePanel_SendFileClicked(object? sender, (string recipient, string filePath) e)
+    {
+        if (string.IsNullOrWhiteSpace(e.recipient) || string.IsNullOrWhiteSpace(e.filePath))
+            return;
+        var success = await _apiClient.SendFileMessageAsync(e.recipient, e.filePath);
+        if (success)
+        {
+            _composePanel?.Clear();
+            // Optionally refresh messages or show feedback
+        }
+        else
+        {
+            // Optionally show error feedback
+        }
     }
 
     private void ShowChatUI(string contactId)
@@ -203,13 +244,27 @@ public partial class MainChatWindow : Window
     private async void SendButton_Click(object? sender, RoutedEventArgs e)
     {
         if (_currentContactId == null) return;
-
+        if (!string.IsNullOrEmpty(_selectedFilePath))
+        {
+            var success = await _apiClient.SendFileMessageAsync(_currentContactId, _selectedFilePath);
+            if (success)
+            {
+                _selectedFilePath = null;
+                if (_selectedFileTextBlock != null)
+                    _selectedFileTextBlock.Text = string.Empty;
+                // Optionally refresh messages or show feedback
+            }
+            else
+            {
+                if (_selectedFileTextBlock != null)
+                    _selectedFileTextBlock.Text = "Failed to send file.";
+            }
+            return;
+        }
         var messageText = _messageInputBox?.Text?.Trim();
         if (string.IsNullOrEmpty(messageText)) return;
-
         if (_sendButton != null)
             _sendButton.IsEnabled = false;
-
         try
         {
             var success = await _apiClient.SendMessageAsync(_currentContactId, messageText);
@@ -388,7 +443,8 @@ public partial class MainChatWindow : Window
 
     private string FormatTime(string timestamp)
     {
-        if (DateTime.TryParse(timestamp, out var dt))
+        DateTime dt;
+        if (DateTime.TryParse(timestamp, out dt))
         {
             var now = DateTime.Now;
             var diff = now - dt;
@@ -404,12 +460,34 @@ public partial class MainChatWindow : Window
             else
                 return dt.ToString("MMM d");
         }
+        // Try to parse as Unix timestamp (seconds since epoch)
+        if (long.TryParse(timestamp, out var unixSeconds))
+        {
+            try
+            {
+                dt = DateTimeOffset.FromUnixTimeSeconds(unixSeconds).LocalDateTime;
+                var now = DateTime.Now;
+                var diff = now - dt;
+                if (diff.TotalMinutes < 1)
+                    return "Just now";
+                else if (diff.TotalHours < 1)
+                    return $"{(int)diff.TotalMinutes}m ago";
+                else if (diff.TotalDays < 1)
+                    return $"{(int)diff.TotalHours}h ago";
+                else if (diff.TotalDays < 7)
+                    return $"{(int)diff.TotalDays}d ago";
+                else
+                    return dt.ToString("MMM d");
+            }
+            catch { }
+        }
         return timestamp;
     }
 
     private string FormatMessageTime(string timestamp)
     {
-        if (DateTime.TryParse(timestamp, out var dt))
+        DateTime dt;
+        if (DateTime.TryParse(timestamp, out dt))
         {
             var now = DateTime.Now;
             if (dt.Date == now.Date)
@@ -418,6 +496,22 @@ public partial class MainChatWindow : Window
                 return "Yesterday " + dt.ToString("HH:mm");
             else
                 return dt.ToString("MMM d, HH:mm");
+        }
+        // Try to parse as Unix timestamp (seconds since epoch)
+        if (long.TryParse(timestamp, out var unixSeconds))
+        {
+            try
+            {
+                dt = DateTimeOffset.FromUnixTimeSeconds(unixSeconds).LocalDateTime;
+                var now = DateTime.Now;
+                if (dt.Date == now.Date)
+                    return dt.ToString("HH:mm");
+                else if (dt.Date == now.AddDays(-1).Date)
+                    return "Yesterday " + dt.ToString("HH:mm");
+                else
+                    return dt.ToString("MMM d, HH:mm");
+            }
+            catch { }
         }
         return timestamp;
     }
@@ -428,5 +522,36 @@ public partial class MainChatWindow : Window
         {
             _messageScrollViewer.ScrollToEnd();
         }
+    }
+
+    private async void OnSelectFileClicked(object? sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog();
+        dialog.AllowMultiple = false;
+        var result = await dialog.ShowAsync(this);
+        if (result != null && result.Length > 0)
+        {
+            _selectedFilePath = result[0];
+            if (_selectedFileTextBlock != null)
+                _selectedFileTextBlock.Text = $"Selected: {System.IO.Path.GetFileName(_selectedFilePath)}";
+        }
+    }
+
+    private async void OnPasteFileClicked(object? sender, RoutedEventArgs e)
+    {
+        var clipboard = this.Clipboard;
+        if (clipboard != null)
+        {
+            var text = await clipboard.GetTextAsync();
+            if (!string.IsNullOrWhiteSpace(text) && System.IO.File.Exists(text))
+            {
+                _selectedFilePath = text;
+                if (_selectedFileTextBlock != null)
+                    _selectedFileTextBlock.Text = $"Pasted: {System.IO.Path.GetFileName(_selectedFilePath)}";
+                return;
+            }
+        }
+        if (_selectedFileTextBlock != null)
+            _selectedFileTextBlock.Text = "Clipboard does not contain a file path.\n(Pasting files or images from Explorer is not supported by Avalonia clipboard API.)";
     }
 }

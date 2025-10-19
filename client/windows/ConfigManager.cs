@@ -100,7 +100,7 @@ public class ConfigManager
                 UseShellExecute = true
             });
         }
-        catch (Exception ex)
+        catch (Exception)
         {
         }
     }

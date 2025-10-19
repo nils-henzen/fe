@@ -104,6 +104,51 @@ public class ApiClient
         }
     }
 
+    private string GetMimeType(string fileName)
+    {
+        var ext = System.IO.Path.GetExtension(fileName)?.ToLowerInvariant();
+        return ext switch
+        {
+            ".txt" => "text/plain",
+            ".jpg" => "image/jpeg",
+            ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".pdf" => "application/pdf",
+            ".doc" => "application/msword",
+            ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            _ => "application/octet-stream"
+        };
+    }
+
+    public async Task<bool> SendFileMessageAsync(string receiverId, string filePath)
+    {
+        try
+        {
+            var config = _configManager.GetConfig();
+            var fileName = System.IO.Path.GetFileName(filePath);
+            var fileType = GetMimeType(fileName);
+            var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
+            var fileContent = Convert.ToBase64String(fileBytes);
+            var payload = new
+            {
+                signature = config.Signature,
+                sender_id = config.UserId,
+                receiver_id = receiverId,
+                file_name = fileName,
+                file_type = fileType,
+                file_content = fileContent
+            };
+            var response = await _httpClient.PostAsJsonAsync($"{BaseUrl}/send_file", payload);
+            response.EnsureSuccessStatusCode();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Send file failed: {ex.Message}");
+            return false;
+        }
+    }
+
     public async Task<bool> HealthCheckAsync()
     {
         try
