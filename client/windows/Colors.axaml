@@ -1,0 +1,61 @@
+﻿<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Primary Colors -->
+    <Color x:Key="PrimaryColor">#64799e</Color>
+    <Color x:Key="PrimaryHoverColor">#768eb5</Color>
+    <Color x:Key="PrimaryPressedColor">#536480</Color>
+    
+    <!-- Danger Colors -->
+    <Color x:Key="DangerColor">#E81123</Color>
+    
+    <!-- Background Colors -->
+    <Color x:Key="WindowBackgroundColor">#f3f8fa</Color>
+    <Color x:Key="WhiteColor">#FFFFFF</Color>
+    <Color x:Key="ChatBackgroundColor">#e9f2f6</Color>
+    <Color x:Key="MessageBubbleSentColor">#95adca</Color>
+    <Color x:Key="MessageBubbleReceivedColor">#FFFFFF</Color>
+    
+    <!-- Border Colors -->
+    <Color x:Key="BorderColor">#d8e5ed</Color>
+    <Color x:Key="DividerColor">#d8e5ed</Color>
+    
+    <!-- Text Colors -->
+    <Color x:Key="TextPrimaryColor">#29303d</Color>
+    <Color x:Key="TextSecondaryColor">#475468</Color>
+    <Color x:Key="TextTertiaryColor">#536480</Color>
+    <Color x:Key="TextDisabledColor">#a5bdd4</Color>
+    
+    <!-- Hover/Selection Colors -->
+    <Color x:Key="HoverBackgroundColor">#768eb5</Color>
+    <Color x:Key="SelectionBackgroundColor">#d8e5ed</Color>
+    <Color x:Key="SecondaryBackgroundColor">#f3f8fa</Color>
+    
+    <!-- Shadow Colors -->
+    <Color x:Key="ShadowColor">#40000000</Color>
+    
+    <!-- Transparent -->
+    <Color x:Key="TransparentColor">#00000000</Color>
+
+    <!-- SolidColorBrushes for easier binding -->
+    <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}"/>
+    <SolidColorBrush x:Key="PrimaryHoverBrush" Color="{StaticResource PrimaryHoverColor}"/>
+    <SolidColorBrush x:Key="PrimaryPressedBrush" Color="{StaticResource PrimaryPressedColor}"/>
+    <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource DangerColor}"/>
+    <SolidColorBrush x:Key="WindowBackgroundBrush" Color="{StaticResource WindowBackgroundColor}"/>
+    <SolidColorBrush x:Key="WhiteBrush" Color="{StaticResource WhiteColor}"/>
+    <SolidColorBrush x:Key="ChatBackgroundBrush" Color="{StaticResource ChatBackgroundColor}"/>
+    <SolidColorBrush x:Key="MessageBubbleSentBrush" Color="{StaticResource MessageBubbleSentColor}"/>
+    <SolidColorBrush x:Key="MessageBubbleReceivedBrush" Color="{StaticResource MessageBubbleReceivedColor}"/>
+    <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource BorderColor}"/>
+    <SolidColorBrush x:Key="DividerBrush" Color="{StaticResource DividerColor}"/>
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimaryColor}"/>
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondaryColor}"/>
+    <SolidColorBrush x:Key="TextTertiaryBrush" Color="{StaticResource TextTertiaryColor}"/>
+    <SolidColorBrush x:Key="TextDisabledBrush" Color="{StaticResource TextDisabledColor}"/>
+    <SolidColorBrush x:Key="HoverBackgroundBrush" Color="{StaticResource HoverBackgroundColor}"/>
+    <SolidColorBrush x:Key="SelectionBackgroundBrush" Color="{StaticResource SelectionBackgroundColor}"/>
+    <SolidColorBrush x:Key="SecondaryBackgroundBrush" Color="{StaticResource SecondaryBackgroundColor}"/>
+    <SolidColorBrush x:Key="TransparentBrush" Color="{StaticResource TransparentColor}"/>
+
+</ResourceDictionary>

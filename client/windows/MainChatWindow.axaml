@@ -18,7 +18,7 @@
 
     <Window.Styles>
         <Style Selector="ListBox">
-            <Setter Property="Background" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource WhiteBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
         </Style>
 
@@ -27,48 +27,70 @@
         </Style>
 
         <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
-            <Setter Property="Background" Value="#F0F0F0"/>
+            <Setter Property="Background" Value="{DynamicResource HoverBackgroundBrush}"/>
         </Style>
 
         <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
-            <Setter Property="Background" Value="#E3F2FD"/>
+            <Setter Property="Background" Value="{DynamicResource SelectionBackgroundBrush}"/>
         </Style>
 
         <Style Selector="Button">
-            <Setter Property="Background" Value="#0078D4"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource PrimaryBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource WhiteBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="12,8"/>
             <Setter Property="CornerRadius" Value="6"/>
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
 
-        <Style Selector="Button:pointerover">
-            <Setter Property="Background" Value="#106EBE"/>
+        <Style Selector="Button:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource PrimaryHoverBrush}"/>
+        </Style>
+        
+        <Style Selector="Button:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource PrimaryPressedBrush}"/>
+        </Style>
+
+        <Style Selector="Button:disabled">
+            <Setter Property="Opacity" Value="0.5"/>
         </Style>
 
         <Style Selector="Button.icon">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="#505050"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
             <Setter Property="Padding" Value="8"/>
             <Setter Property="MinWidth" Value="40"/>
         </Style>
 
+        <Style Selector="Button.icon:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource HoverBackgroundBrush}"/>
+        </Style>
+        
         <Style Selector="Button.icon:pointerover">
-            <Setter Property="Background" Value="#F0F0F0"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
         </Style>
 
         <Style Selector="TextBox">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="BorderBrush" Value="#E0E0E0"/>
+            <Setter Property="Background" Value="{DynamicResource WhiteBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="12"/>
             <Setter Property="CornerRadius" Value="20"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource TextPrimaryBrush}"/>
+        </Style>
+        
+        <Style Selector="TextBox:focus">
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+        </Style>
+        
+        <Style Selector="TextBox:pointerover">
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
         </Style>
     </Window.Styles>
 
     <!-- Main Container with Shadow -->
-    <Border Background="White"
+    <Border Background="{DynamicResource WhiteBrush}"
             CornerRadius="8"
             Margin="10"
             BoxShadow="0 8 32 0 #40000000">
@@ -79,7 +101,7 @@
             <Border Grid.Column="0"
                     Grid.ColumnSpan="2"
                     Grid.Row="0"
-                    Background="#0078D4"
+                    Background="{DynamicResource PrimaryBrush}"
                     CornerRadius="8,8,0,0"
                     Height="40"
                     Name="TitleBar">
@@ -88,25 +110,25 @@
                                Text="Fe Chat"
                                FontSize="14"
                                FontWeight="SemiBold"
-                               Foreground="White"
+                               Foreground="{DynamicResource WhiteBrush}"
                                VerticalAlignment="Center"
                                Margin="15,0,0,0"/>
                     <Button Grid.Column="1"
                             Name="CloseButton"
                             Content="✕"
                             FontSize="16"
-                            Foreground="White"
+                            Foreground="{DynamicResource WhiteBrush}"
                             Background="Transparent"
                             BorderThickness="0"
                             Width="40"
                             Height="40"
                             CornerRadius="0,8,0,0"
-                            Padding="0"
+                            Padding="12, 10, 0, 0"
                             ToolTip.Tip="Close"
                             Cursor="Hand">
                         <Button.Styles>
                             <Style Selector="Button:pointerover">
-                                <Setter Property="Background" Value="#E81123"/>
+                                <Setter Property="Background" Value="{DynamicResource DangerBrush}"/>
                             </Style>
                         </Button.Styles>
                     </Button>
@@ -116,16 +138,16 @@
             <!-- Left Panel - Contacts List -->
             <Border Grid.Column="0"
                     Grid.Row="1"
-                    Background="White"
-                    BorderBrush="#E0E0E0"
+                    Background="{DynamicResource WhiteBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="0,0,1,0"
                     CornerRadius="0,0,0,8">
                 <Grid RowDefinitions="Auto,*">
 
                     <!-- Contacts Header -->
                     <Border Grid.Row="0"
-                            Background="White"
-                            BorderBrush="#E0E0E0"
+                            Background="{DynamicResource WhiteBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="0,0,0,1"
                             Padding="15,12">
                         <Grid ColumnDefinitions="*,Auto">
@@ -133,7 +155,7 @@
                                        Text="Chats"
                                        FontSize="20"
                                        FontWeight="SemiBold"
-                                       Foreground="#202020"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
                                        VerticalAlignment="Center"/>
                             <Button Grid.Column="1"
                                     Name="NewChatButton"
@@ -142,7 +164,7 @@
                                     FontWeight="Bold"
                                     Width="36"
                                     Height="36"
-                                    Padding="0"
+                                    Padding="11,6,0,0"
                                     CornerRadius="18"
                                     ToolTip.Tip="New Chat"/>
                         </Grid>
@@ -152,10 +174,10 @@
                     <ListBox Grid.Row="1"
                              Name="ContactsListBox"
                              SelectionMode="Single"
-                             Background="White">
+                             Background="{DynamicResource WhiteBrush}">
                         <ListBox.ItemTemplate>
                             <DataTemplate x:DataType="local:Contact">
-                                <Border BorderBrush="#E0E0E0"
+                                <Border BorderBrush="{DynamicResource BorderBrush}"
                                         BorderThickness="0,0,0,1"
                                         Padding="15,12"
                                         Background="Transparent">
@@ -164,10 +186,10 @@
                                         <Border Grid.Column="0"
                                                 Width="45" Height="45"
                                                 CornerRadius="22.5"
-                                                Background="#0078D4"
+                                                Background="{DynamicResource PrimaryBrush}"
                                                 VerticalAlignment="Center">
                                             <TextBlock Text="{Binding Initial}"
-                                                       Foreground="White"
+                                                       Foreground="{DynamicResource WhiteBrush}"
                                                        FontSize="18"
                                                        FontWeight="SemiBold"
                                                        HorizontalAlignment="Center"
@@ -182,11 +204,11 @@
                                                        Text="{Binding ContactId}"
                                                        FontSize="15"
                                                        FontWeight="SemiBold"
-                                                       Foreground="#202020"/>
+                                                       Foreground="{DynamicResource TextPrimaryBrush}"/>
                                             <TextBlock Grid.Row="1"
                                                        Text="{Binding LastMessage}"
                                                        FontSize="13"
-                                                       Foreground="#707070"
+                                                       Foreground="{DynamicResource TextTertiaryBrush}"
                                                        TextTrimming="CharacterEllipsis"
                                                        Margin="0,3,0,0"/>
                                         </Grid>
@@ -205,8 +227,8 @@
                 <!-- Empty State or Chat Header -->
                 <Border Grid.Row="0"
                         Name="ChatHeaderBorder"
-                        Background="White"
-                        BorderBrush="#E0E0E0"
+                        Background="{DynamicResource WhiteBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="0,0,0,1"
                         Padding="20,12"
                         IsVisible="False">
@@ -215,10 +237,10 @@
                         <Border Grid.Column="0"
                                 Width="40" Height="40"
                                 CornerRadius="20"
-                                Background="#0078D4"
+                                Background="{DynamicResource PrimaryBrush}"
                                 VerticalAlignment="Center">
                             <TextBlock Name="ChatContactInitialText"
-                                       Foreground="White"
+                                       Foreground="{DynamicResource WhiteBrush}"
                                        FontSize="16"
                                        FontWeight="SemiBold"
                                        HorizontalAlignment="Center"
@@ -230,7 +252,7 @@
                                    Name="ChatContactNameText"
                                    FontSize="17"
                                    FontWeight="SemiBold"
-                                   Foreground="#202020"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                    VerticalAlignment="Center"
                                    Margin="12,0,0,0"/>
 
@@ -256,7 +278,7 @@
                                Opacity="0.3"/>
                     <TextBlock Text="Select a chat to start messaging"
                                FontSize="16"
-                               Foreground="#909090"
+                               Foreground="{DynamicResource TextDisabledBrush}"
                                HorizontalAlignment="Center"/>
                 </StackPanel>
 
@@ -264,7 +286,7 @@
                 <ScrollViewer Grid.Row="1"
                               Name="MessageScrollViewer"
                               Padding="20"
-                              Background="#E5DDD5"
+                              Background="{DynamicResource ChatBackgroundBrush}"
                               IsVisible="False">
                     <ItemsControl Name="MessagesItemsControl">
                         <ItemsControl.ItemTemplate>
@@ -279,10 +301,10 @@
                                             <TextBlock Text="{Binding Text}"
                                                        TextWrapping="Wrap"
                                                        FontSize="14"
-                                                       Foreground="#202020"/>
+                                                       Foreground="{DynamicResource TextPrimaryBrush}"/>
                                             <TextBlock Text="{Binding Time}"
                                                        FontSize="11"
-                                                       Foreground="#707070"
+                                                       Foreground="{DynamicResource TextTertiaryBrush}"
                                                        HorizontalAlignment="Right"
                                                        Margin="0,4,0,0"/>
                                         </StackPanel>
@@ -296,8 +318,8 @@
                 <!-- Input Area -->
                 <Border Grid.Row="2"
                         Name="InputAreaBorder"
-                        Background="White"
-                        BorderBrush="#E0E0E0"
+                        Background="{DynamicResource WhiteBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="0,1,0,0"
                         CornerRadius="0,0,8,0"
                         Padding="20,12"

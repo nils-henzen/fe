@@ -18,7 +18,7 @@ public class ChatMessage
     public string Time { get; set; } = "";
     public bool IsSentByMe { get; set; }
     public HorizontalAlignment Alignment => IsSentByMe ? HorizontalAlignment.Right : HorizontalAlignment.Left;
-    public string BubbleColor => IsSentByMe ? "#DCF8C6" : "#FFFFFF";
+    public string BubbleColor => IsSentByMe ? "#95adca" : "#FFFFFF"; // rock-blue-500 for sent, white for received
 }
 
 public partial class ChatWindow : Window
@@ -225,4 +225,3 @@ public partial class ChatWindow : Window
         }
     }
 }
-
