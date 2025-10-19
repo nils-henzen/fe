@@ -23,6 +23,7 @@ public class TrayManager
     private HashSet<int> _seenMessageIds = new();
     private ComposeWindow? _composeWindow;
     private MessagesWindow? _messagesWindow;
+    private MainChatWindow? _mainChatWindow;
     private WindowNotificationManager? _notificationManager;
 
     public TrayManager(IClassicDesktopStyleApplicationLifetime lifetime)
@@ -39,29 +40,34 @@ public class TrayManager
             IsVisible = true
         };
 
+        // Add click handler to open main chat window
+        _trayIcon.Clicked += (_, _) => ShowMainChatWindow();
+
         // Setup context menu
         var menu = new NativeMenu();
 
+        var openChatsItem = new NativeMenuItem("Open Chats");
+        openChatsItem.Click += (_, _) => ShowMainChatWindow();
+        menu.Add(openChatsItem);
+
         var checkMessagesItem = new NativeMenuItem("Check Messages");
-        checkMessagesItem.Click += async (s, e) => await CheckMessagesAsync();
+        checkMessagesItem.Click += async (_, _) => await CheckMessagesAsync();
         menu.Add(checkMessagesItem);
 
-        var viewMessagesItem = new NativeMenuItem("View Messages");
-        viewMessagesItem.Click += (s, e) => ShowMessagesWindow();
-        menu.Add(viewMessagesItem);
+        menu.Add(new NativeMenuItemSeparator());
 
-        var composeItem = new NativeMenuItem("Compose Message");
-        composeItem.Click += (s, e) => ShowComposeWindow();
-        menu.Add(composeItem);
+        var viewMessagesItem = new NativeMenuItem("View All Messages");
+        viewMessagesItem.Click += (_, _) => ShowMessagesWindow();
+        menu.Add(viewMessagesItem);
 
         menu.Add(new NativeMenuItemSeparator());
 
         var configItem = new NativeMenuItem("Settings");
-        configItem.Click += (s, e) => ShowSettings();
+        configItem.Click += (_, _) => ShowSettings();
         menu.Add(configItem);
 
         var exitItem = new NativeMenuItem("Exit");
-        exitItem.Click += (s, e) => Exit();
+        exitItem.Click += (_, _) => Exit();
         menu.Add(exitItem);
 
         _trayIcon.Menu = menu;
@@ -160,6 +166,27 @@ public class TrayManager
         if (_notificationManager != null)
         {
             _notificationManager.Show(new Notification(title, message, NotificationType.Information));
+        }
+    }
+
+    private void ShowMainChatWindow()
+    {
+        if (_mainChatWindow == null)
+        {
+            _mainChatWindow = new MainChatWindow(_apiClient, _configManager);
+            _mainChatWindow.Closed += (_, _) => _mainChatWindow = null;
+        }
+
+        if (_mainChatWindow.IsVisible)
+        {
+            _mainChatWindow.Hide();
+        }
+        else
+        {
+            _mainChatWindow.PositionNearTrayIcon();
+            _mainChatWindow.Show();
+            _mainChatWindow.Activate();
+            _ = _mainChatWindow.LoadContactsAsync();
         }
     }
 

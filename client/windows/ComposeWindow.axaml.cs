@@ -16,6 +16,8 @@ public partial class ComposeWindow : Window
     private Button? _sendButton;
     private Button? _cancelButton;
 
+    public event EventHandler<string>? MessageSent;
+
     public ComposeWindow(ApiClient apiClient, ConfigManager configManager)
     {
         _apiClient = apiClient;
@@ -72,6 +74,9 @@ public partial class ComposeWindow : Window
             if (success)
             {
                 ShowSuccess("Message sent successfully!");
+
+                // Notify that a message has been sent
+                MessageSent?.Invoke(this, receiver);
 
                 // Clear fields
                 if (_receiverTextBox != null)
@@ -169,4 +174,3 @@ public partial class ComposeWindow : Window
         notification.ShowDialog(this);
     }
 }
-
