@@ -161,4 +161,28 @@ public class ApiClient
             return false;
         }
     }
+
+    public async Task<byte[]?> DownloadFileAsync(int messageId)
+    {
+        try
+        {
+            var config = _configManager.GetConfig();
+            var response = await _httpClient.GetAsync($"{BaseUrl}/read?message_id={messageId}&sender_id={config.UserId}&signature={config.Signature}");
+            response.EnsureSuccessStatusCode();
+
+            var message = await response.Content.ReadFromJsonAsync<Message>();
+            
+            if (message != null && !string.IsNullOrEmpty(message.FileContents))
+            {
+                return Convert.FromBase64String(message.FileContents);
+            }
+            
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Download file failed: {ex.Message}");
+            return null;
+        }
+    }
 }
