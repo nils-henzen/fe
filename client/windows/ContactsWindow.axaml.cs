@@ -1,4 +1,4 @@
-﻿using Avalonia;
+﻿﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
@@ -113,7 +113,7 @@ public partial class ContactsWindow : Window
                     {
                         var contactMessages = messages
                             .Where(m => m.SenderId == contactId || m.ReceiverId == contactId)
-                            .OrderByDescending(m => m.Timestamp)
+                            .OrderByDescending(m => long.TryParse(m.Timestamp, out var ts) ? ts : 0)
                             .ToList();
 
                         var lastMsg = contactMessages.First();

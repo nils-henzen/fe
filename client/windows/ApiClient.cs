@@ -41,7 +41,7 @@ public class Message
 
     public string DisplayText => IsTextMessage && !string.IsNullOrEmpty(FileContents)
         ? System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(FileContents))
-        : $"[File: {FileName}]";
+        : FileName ?? "File";
 }
 
 public class ApiClient

@@ -364,7 +364,7 @@ public partial class MainChatWindow : Window
                     {
                         var contactMessages = messages
                             .Where(m => m.SenderId == contactId || m.ReceiverId == contactId)
-                            .OrderByDescending(m => m.Timestamp)
+                            .OrderByDescending(m => long.TryParse(m.Timestamp, out var ts) ? ts : 0)
                             .ToList();
 
                         var lastMsg = contactMessages.First();
@@ -411,7 +411,7 @@ public partial class MainChatWindow : Window
                 var conversationMessages = messages
                     .Where(m => (m.SenderId == currentUserId && m.ReceiverId == contactId) ||
                                (m.SenderId == contactId && m.ReceiverId == currentUserId))
-                    .OrderBy(m => m.Timestamp)
+                    .OrderBy(m => long.TryParse(m.Timestamp, out var ts) ? ts : 0)
                     .ToList();
 
                 _messages.Clear();
@@ -428,12 +428,6 @@ public partial class MainChatWindow : Window
                         FileType = msg.FileType,
                         FileContents = msg.FileContents
                     };
-                    
-                    // Debug output
-                    Console.WriteLine($"Message: Id={chatMsg.MessageId}, FileName={chatMsg.FileName}, FileType={chatMsg.FileType}, " +
-                                    $"HasContents={!string.IsNullOrEmpty(chatMsg.FileContents)}, " +
-                                    $"IsFile={chatMsg.IsFile}, IsTextMessage={chatMsg.IsTextMessage}, " +
-                                    $"IsDownloadableFile={chatMsg.IsDownloadableFile}");
                     
                     _messages.Add(chatMsg);
                 }

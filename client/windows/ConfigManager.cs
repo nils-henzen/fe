@@ -24,7 +24,7 @@ public class ConfigManager
 {
     private readonly string _configPath;
     private AppConfig? _config;
-    public int PollingIntervalSeconds { get; set; } = 30;
+    public int PollingIntervalSeconds { get; set; } = 15;
 
     public ConfigManager()
     {

@@ -181,7 +181,7 @@ public partial class ChatWindow : Window
                 var conversationMessages = messages
                     .Where(m => (m.SenderId == currentUserId && m.ReceiverId == _contactId) ||
                                (m.SenderId == _contactId && m.ReceiverId == currentUserId))
-                    .OrderBy(m => m.Timestamp)
+                    .OrderBy(m => long.TryParse(m.Timestamp, out var ts) ? ts : 0)
                     .ToList();
 
                 _messages.Clear();

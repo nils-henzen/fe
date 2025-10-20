@@ -319,7 +319,7 @@
                                                 Padding="8"
                                                 Tag="{Binding}"
                                                 Click="DownloadButton_Click">
-                                            <PathIcon Data="M480-320 280-520l56-58 104 104v-326h80v326l104-104 56 58-200 200ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z" Width="18"/>
+                                            <PathIcon Data="M480-320 280-520l56-58 104 104v-326h80v326l104-104 56 58-200 200ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z" Width="18" Foreground="{DynamicResource WindowBackgroundColor}"/>
                                         </Button>
                                     </Grid>
                                 </Border>
@@ -355,7 +355,7 @@
                                 FontSize="14"
                                 MinWidth="30"
                                 Margin="10,0,0,0">
-                            <PathIcon Data="M440-200h80v-167l64 64 56-57-160-160-160 160 57 56 63-63v167ZM240-80q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5T240-880h320l240 240v480q0 33-23.5 56.5T720-80H240Zm280-520v-200H240v640h480v-440H520ZM240-800v200-200 640-640Z" Width="15"></PathIcon>    
+                            <PathIcon Data="M440-200h80v-167l64 64 56-57-160-160-160 160 57 56 63-63v167ZM240-80q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5T240-880h320l240 240v480q0 33-23.5 56.5T720-80H240Zm280-520v-200H240v640h480v-440H520ZM240-800v200-200 640-640Z" Width="15" Foreground="{DynamicResource WindowBackgroundColor}"></PathIcon>    
                         </Button>
                         <Button Grid.Column="2"
                                 Name="PasteFileButton"
@@ -364,7 +364,7 @@
                                 Margin="10,0,0,0"
                                 IsVisible="False"
                                 >
-                                <PathIcon Data="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h167q11-35 43-57.5t70-22.5q40 0 71.5 22.5T594-840h166q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560h-80v120H280v-120h-80v560Zm280-560q17 0 28.5-11.5T520-800q0-17-11.5-28.5T480-840q-17 0-28.5 11.5T440-800q0 17 11.5 28.5T480-760Z" Width="15"></PathIcon>
+                                <PathIcon Data="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h167q11-35 43-57.5t70-22.5q40 0 71.5 22.5T594-840h166q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560h-80v120H280v-120h-80v560Zm280-560q17 0 28.5-11.5T520-800q0-17-11.5-28.5T480-840q-17 0-28.5 11.5T440-800q0 17 11.5 28.5T480-760Z" Width="15" Foreground="{DynamicResource WindowBackgroundColor}"></PathIcon>
                         </Button>
                         <TextBlock Grid.Column="3"
                                    Name="SelectedFileTextBlock"
@@ -374,10 +374,10 @@
                                    VerticalAlignment="Center"/>
                         <Button Grid.Column="4"
                                 Name="SendButton"
-                                FontSize="14"
+                                FontSize="16"
                                 MinWidth="50"
                                 Margin="10,0,0,0">
-                            <PathIcon Data="M120-160v-640l760 320-760 320Zm80-120 474-200-474-200v140l240 60-240 60v140Zm0 0v-400 400Z" Width="15"></PathIcon>
+                            <PathIcon Data="M120-160v-640l760 320-760 320Zm80-120 474-200-474-200v140l240 60-240 60v140Zm0 0v-400 400Z" Width="18" Foreground="{DynamicResource WindowBackgroundColor}"></PathIcon>
                         </Button>
                     </Grid>
                 </Border>
