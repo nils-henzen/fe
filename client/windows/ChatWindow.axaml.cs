@@ -9,6 +9,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia.Threading;
 
 namespace FeChat;
 
@@ -231,7 +232,14 @@ public partial class ChatWindow : Window
     {
         if (_messageScrollViewer != null)
         {
+            // Scroll to the very end
             _messageScrollViewer.ScrollToEnd();
+            
+            // Force another scroll after a short delay to ensure content is rendered
+            Dispatcher.UIThread.Post(() => 
+            {
+                _messageScrollViewer?.ScrollToEnd();
+            }, Avalonia.Threading.DispatcherPriority.Background);
         }
     }
 }
