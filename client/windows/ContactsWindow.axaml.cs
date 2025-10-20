@@ -112,7 +112,8 @@ public partial class ContactsWindow : Window
                     .Select(contactId =>
                     {
                         var contactMessages = messages
-                            .Where(m => m.SenderId == contactId || m.ReceiverId == contactId)
+                            .Where(m => (m.SenderId == currentUserId && m.ReceiverId == contactId) ||
+                                       (m.SenderId == contactId && m.ReceiverId == currentUserId))
                             .OrderByDescending(m => long.TryParse(m.Timestamp, out var ts) ? ts : 0)
                             .ToList();
 

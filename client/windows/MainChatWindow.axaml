@@ -283,10 +283,11 @@
                 <!-- Chat Messages Area -->
                 <ScrollViewer Grid.Row="1"
                               Name="MessageScrollViewer"
-                              Padding="20"
+                              Padding="20,20,20,0"
                               Background="{DynamicResource ChatBackgroundBrush}"
-                              IsVisible="False">
-                    <ItemsControl Name="MessagesItemsControl">
+                              IsVisible="False"
+                              ClipToBounds="False">
+                    <ItemsControl Name="MessagesItemsControl" Margin="0,0,0,100" ClipToBounds="False">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="local:ChatMessage">
                                 <Border Margin="0,5"

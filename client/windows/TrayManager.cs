@@ -116,7 +116,10 @@ public class TrayManager
     private void StartPolling()
     {
         var pollingInterval = TimeSpan.FromSeconds(_configManager.PollingIntervalSeconds);
-        _pollingTimer = new Timer(async _ => await CheckMessagesAsync(), null, TimeSpan.Zero, pollingInterval);
+        _pollingTimer = new Timer(_ => 
+        {
+            _ = CheckMessagesAsync();
+        }, null, TimeSpan.Zero, pollingInterval);
     }
 
     private async Task CheckMessagesAsync()
@@ -127,6 +130,7 @@ public class TrayManager
 
             if (messages != null && messages.Any())
             {
+                var currentUserId = _configManager.GetConfig().UserId;
                 var newMessages = messages.Where(m => !_seenMessageIds.Contains(m.Id)).ToList();
 
                 if (newMessages.Any())
@@ -136,9 +140,30 @@ public class TrayManager
                         _seenMessageIds.Add(msg.Id);
                     }
 
+                    // Only show notification if app is not in foreground
                     await Dispatcher.UIThread.InvokeAsync(() =>
                     {
-                        ShowNotification($"New Messages", $"You have {newMessages.Count} new message(s)");
+                        if (!IsAnyWindowActive())
+                        {
+                            // Show more detailed notification with sender info
+                            var incomingMessages = newMessages.Where(m => m.SenderId != currentUserId).ToList();
+                            
+                            if (incomingMessages.Any())
+                            {
+                                if (incomingMessages.Count == 1)
+                                {
+                                    var msg = incomingMessages.First();
+                                    var preview = msg.DisplayText.Length > 50 
+                                        ? msg.DisplayText.Substring(0, 47) + "..." 
+                                        : msg.DisplayText;
+                                    ShowNotification($"New message from {msg.SenderId}", preview);
+                                }
+                                else
+                                {
+                                    ShowNotification("New Messages", $"You have {incomingMessages.Count} new message(s)");
+                                }
+                            }
+                        }
                     });
                 }
             }
@@ -149,11 +174,43 @@ public class TrayManager
         }
     }
 
+    private bool IsAnyWindowActive()
+    {
+        // Check if main chat window is active
+        if (_mainChatWindow?.IsActive == true && _mainChatWindow.IsVisible)
+        {
+            return true;
+        }
+
+        // Check if any other window from this app is active
+        if (_lifetime.Windows != null)
+        {
+            foreach (var window in _lifetime.Windows)
+            {
+                if (window.IsActive && window.IsVisible)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     private void ShowNotification(string title, string message)
     {
-        if (_notificationManager != null)
+        // Try Windows native toast notification first
+        try
         {
-            _notificationManager.Show(new Notification(title, message, NotificationType.Information));
+            NotificationHelper.ShowWindowsToast(title, message);
+        }
+        catch
+        {
+            // Fallback to Avalonia notification if Windows toast fails
+            if (_notificationManager != null)
+            {
+                _notificationManager.Show(new Notification(title, message, NotificationType.Information));
+            }
         }
     }
 
