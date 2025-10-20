@@ -418,12 +418,24 @@ public partial class MainChatWindow : Window
 
                 foreach (var msg in conversationMessages)
                 {
-                    _messages.Add(new ChatMessage
+                    var chatMsg = new ChatMessage
                     {
+                        MessageId = msg.Id,
                         Text = msg.DisplayText,
                         Time = FormatMessageTime(msg.Timestamp),
-                        IsSentByMe = msg.SenderId == currentUserId
-                    });
+                        IsSentByMe = msg.SenderId == currentUserId,
+                        FileName = msg.FileName,
+                        FileType = msg.FileType,
+                        FileContents = msg.FileContents
+                    };
+                    
+                    // Debug output
+                    Console.WriteLine($"Message: Id={chatMsg.MessageId}, FileName={chatMsg.FileName}, FileType={chatMsg.FileType}, " +
+                                    $"HasContents={!string.IsNullOrEmpty(chatMsg.FileContents)}, " +
+                                    $"IsFile={chatMsg.IsFile}, IsTextMessage={chatMsg.IsTextMessage}, " +
+                                    $"IsDownloadableFile={chatMsg.IsDownloadableFile}");
+                    
+                    _messages.Add(chatMsg);
                 }
 
                 await Task.Delay(100);
@@ -553,5 +565,60 @@ public partial class MainChatWindow : Window
         }
         if (_selectedFileTextBlock != null)
             _selectedFileTextBlock.Text = "Clipboard does not contain a file path.\n(Pasting files or images from Explorer is not supported by Avalonia clipboard API.)";
+    }
+
+    private async void DownloadButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || button.Tag is not ChatMessage message)
+            return;
+
+        if (!message.IsDownloadableFile)
+            return;
+
+        try
+        {
+            // Get the Downloads folder path
+            var downloadsPath = System.IO.Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                "Downloads");
+            
+            // Create downloads folder if it doesn't exist
+            if (!System.IO.Directory.Exists(downloadsPath))
+                System.IO.Directory.CreateDirectory(downloadsPath);
+            
+            // Create the full file path
+            var filePath = System.IO.Path.Combine(downloadsPath, message.FileName ?? "download");
+            
+            // If file already exists, add a number to the filename
+            if (System.IO.File.Exists(filePath))
+            {
+                var fileNameWithoutExt = System.IO.Path.GetFileNameWithoutExtension(message.FileName);
+                var extension = System.IO.Path.GetExtension(message.FileName);
+                var counter = 1;
+                
+                do
+                {
+                    filePath = System.IO.Path.Combine(downloadsPath, $"{fileNameWithoutExt} ({counter}){extension}");
+                    counter++;
+                } while (System.IO.File.Exists(filePath));
+            }
+            
+            // Download the file from the server using the message ID
+            var fileBytes = await _apiClient.DownloadFileAsync(message.MessageId);
+            
+            if (fileBytes != null)
+            {
+                await System.IO.File.WriteAllBytesAsync(filePath, fileBytes);
+                Console.WriteLine($"File downloaded successfully: {filePath}");
+            }
+            else
+            {
+                Console.WriteLine($"Failed to download file: {message.FileName}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error downloading file: {ex.Message}");
+        }
     }
 }
