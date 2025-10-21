@@ -1,0 +1,74 @@
+name: Avalonia .NET 9.0 Build and Release
+
+on:
+  push:
+    branches: [ "main", "avaloniaui" ]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            runtime: win-x64
+            artifact-name: FeChat-Windows-x64.exe
+            binary-path: publish/win-x64/FeChat.exe
+          - os: ubuntu-latest
+            runtime: linux-x64
+            artifact-name: FeChat-Linux-x64
+            binary-path: publish/linux-x64/FeChat
+          - os: macos-latest
+            runtime: osx-x64
+            artifact-name: FeChat-macOS-x64
+            binary-path: publish/osx-x64/FeChat
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup .NET 9.0
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+      - name: Restore dependencies
+        run: dotnet restore client/windows/FeChat.csproj
+      - name: Build application
+        run: |
+          dotnet publish client/windows/FeChat.csproj \
+            -c Release \
+            -r ${{ matrix.runtime }} \
+            --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:PublishTrimmed=true \
+            -o publish/${{ matrix.runtime }}
+      - name: Upload standalone binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact-name }}
+          path: ${{ matrix.binary-path }}
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/**/*.exe
+            artifacts/**/FeChat
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
