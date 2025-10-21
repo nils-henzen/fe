@@ -357,26 +357,33 @@ public partial class MainChatWindow : Window
             {
                 var currentUserId = _configManager.GetConfig().UserId;
 
-                var contactGroups = messages
-                    .Select(m => m.SenderId == currentUserId ? m.ReceiverId : m.SenderId)
+                // Alle Kontakt-IDs sammeln, inkl. eigener UserId, falls relevant
+                var contactIds = messages
+                    .SelectMany(m => new[] { m.SenderId, m.ReceiverId })
                     .Where(id => !string.IsNullOrEmpty(id))
                     .Distinct()
+                    .ToList();
+
+                // Optional: Nur Kontakte anzeigen, mit denen es Konversationen gibt
+                // (also Nachrichten, die nicht nur von dir an andere gehen)
+
+                var contactGroups = contactIds
                     .Select(contactId =>
                     {
                         var contactMessages = messages
-                            .Where(m => m.SenderId == contactId || m.ReceiverId == contactId)
+                            .Where(m => (m.SenderId == currentUserId && m.ReceiverId == contactId) ||
+                                        (m.SenderId == contactId && m.ReceiverId == currentUserId))
                             .OrderByDescending(m => long.TryParse(m.Timestamp, out var ts) ? ts : 0)
                             .ToList();
 
-                        var lastMsg = contactMessages.First();
-
+                        var lastMsg = contactMessages.FirstOrDefault();
                         return new Contact
                         {
                             ContactId = contactId,
-                            LastMessage = lastMsg.DisplayText.Length > 35
+                            LastMessage = lastMsg != null && lastMsg.DisplayText.Length > 35
                                 ? lastMsg.DisplayText.Substring(0, 32) + "..."
-                                : lastMsg.DisplayText,
-                            LastMessageTime = FormatTime(lastMsg.Timestamp),
+                                : lastMsg?.DisplayText ?? string.Empty,
+                            LastMessageTime = lastMsg != null ? FormatTime(lastMsg.Timestamp) : string.Empty,
                             UnreadCount = 0
                         };
                     })
