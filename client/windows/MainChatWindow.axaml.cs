@@ -9,8 +9,72 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Threading;
+using System.Runtime.InteropServices;
+using System.Collections.Specialized;
 
 namespace FeChat;
+
+// Windows Clipboard Helper using P/Invoke
+internal static class WindowsClipboardHelper
+{
+    [DllImport("user32.dll")]
+    private static extern bool OpenClipboard(IntPtr hWndNewOwner);
+
+    [DllImport("user32.dll")]
+    private static extern bool CloseClipboard();
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetClipboardData(uint uFormat);
+
+    [DllImport("user32.dll")]
+    private static extern bool IsClipboardFormatAvailable(uint format);
+
+    [DllImport("shell32.dll", CharSet = CharSet.Auto)]
+    private static extern uint DragQueryFile(IntPtr hDrop, uint iFile, System.Text.StringBuilder lpszFile, int cch);
+
+    private const uint CF_HDROP = 15;
+    private const uint CF_BITMAP = 2;
+    private const uint CF_DIB = 8;
+
+    public static string[] GetFileDropList()
+    {
+        var files = new System.Collections.Generic.List<string>();
+        
+        if (!OpenClipboard(IntPtr.Zero))
+            return files.ToArray();
+
+        try
+        {
+            if (IsClipboardFormatAvailable(CF_HDROP))
+            {
+                IntPtr hDrop = GetClipboardData(CF_HDROP);
+                if (hDrop != IntPtr.Zero)
+                {
+                    uint fileCount = DragQueryFile(hDrop, 0xFFFFFFFF, null, 0);
+                    for (uint i = 0; i < fileCount; i++)
+                    {
+                        var sb = new System.Text.StringBuilder(260);
+                        if (DragQueryFile(hDrop, i, sb, sb.Capacity) > 0)
+                        {
+                            files.Add(sb.ToString());
+                        }
+                    }
+                }
+            }
+        }
+        finally
+        {
+            CloseClipboard();
+        }
+
+        return files.ToArray();
+    }
+
+    public static bool HasFiles()
+    {
+        return IsClipboardFormatAvailable(CF_HDROP);
+    }
+}
 
 public partial class MainChatWindow : Window
 {
@@ -560,20 +624,157 @@ public partial class MainChatWindow : Window
 
     private async void OnPasteFileClicked(object? sender, RoutedEventArgs e)
     {
-        var clipboard = this.Clipboard;
-        if (clipboard != null)
+        if (_currentContactId == null)
         {
+            if (_selectedFileTextBlock != null)
+                _selectedFileTextBlock.Text = "Please select a contact first.";
+            return;
+        }
+
+        try
+        {
+            // Try Windows-specific clipboard for files (works when copying files in Explorer)
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                if (WindowsClipboardHelper.HasFiles())
+                {
+                    var files = WindowsClipboardHelper.GetFileDropList();
+                    if (files != null && files.Length > 0)
+                    {
+                        var filePath = files[0];
+                        Console.WriteLine($"Got file from Windows clipboard: {filePath}");
+                        
+                        if (_selectedFileTextBlock != null)
+                            _selectedFileTextBlock.Text = $"Sending: {System.IO.Path.GetFileName(filePath)}...";
+
+                        var success = await _apiClient.SendFileMessageAsync(_currentContactId, filePath);
+                        
+                        if (success)
+                        {
+                            if (_selectedFileTextBlock != null)
+                                _selectedFileTextBlock.Text = "";
+                            
+                            await Task.Delay(500);
+                            await LoadMessagesForContact(_currentContactId);
+                            await LoadContactsAsync();
+                        }
+                        else
+                        {
+                            if (_selectedFileTextBlock != null)
+                                _selectedFileTextBlock.Text = "Failed to send file.";
+                        }
+                        return;
+                    }
+                }
+            }
+
+            // Fallback to Avalonia clipboard API
+            var clipboard = this.Clipboard;
+            if (clipboard == null)
+            {
+                if (_selectedFileTextBlock != null)
+                    _selectedFileTextBlock.Text = "Clipboard not available.";
+                return;
+            }
+
+            // Get all available formats for debugging
+            var formats = await clipboard.GetFormatsAsync();
+            Console.WriteLine($"Available clipboard formats: {string.Join(", ", formats)}");
+
+            // Try to get image from clipboard - try multiple common formats
+            foreach (var format in formats)
+            {
+                Console.WriteLine($"Trying format: {format}");
+                
+                // Try common image format names
+                if (format.Contains("image", StringComparison.OrdinalIgnoreCase) || 
+                    format.Contains("png", StringComparison.OrdinalIgnoreCase) ||
+                    format.Contains("bitmap", StringComparison.OrdinalIgnoreCase) ||
+                    format.Contains("dib", StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        var imageData = await clipboard.GetDataAsync(format);
+                        Console.WriteLine($"Got data for format {format}: {imageData?.GetType().Name}");
+                        
+                        if (imageData is Avalonia.Media.Imaging.Bitmap bitmap)
+                        {
+                            if (_selectedFileTextBlock != null)
+                                _selectedFileTextBlock.Text = "Sending image from clipboard...";
+
+                            // Save bitmap to temporary file
+                            var tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"clipboard_image_{DateTime.Now:yyyyMMddHHmmss}.png");
+                            
+                            using (var stream = System.IO.File.Create(tempPath))
+                            {
+                                bitmap.Save(stream);
+                            }
+
+                            var success = await _apiClient.SendFileMessageAsync(_currentContactId, tempPath);
+                            
+                            // Clean up temp file
+                            try { System.IO.File.Delete(tempPath); } catch { }
+                            
+                            if (success)
+                            {
+                                if (_selectedFileTextBlock != null)
+                                    _selectedFileTextBlock.Text = "";
+                                
+                                await Task.Delay(500);
+                                await LoadMessagesForContact(_currentContactId);
+                                await LoadContactsAsync();
+                            }
+                            else
+                            {
+                                if (_selectedFileTextBlock != null)
+                                    _selectedFileTextBlock.Text = "Failed to send image.";
+                            }
+                            return;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error reading format {format}: {ex.Message}");
+                    }
+                }
+            }
+
+            // Try to get file path from clipboard text
             var text = await clipboard.GetTextAsync();
             if (!string.IsNullOrWhiteSpace(text) && System.IO.File.Exists(text))
             {
-                _selectedFilePath = text;
                 if (_selectedFileTextBlock != null)
-                    _selectedFileTextBlock.Text = $"Pasted: {System.IO.Path.GetFileName(_selectedFilePath)}";
+                    _selectedFileTextBlock.Text = $"Sending: {System.IO.Path.GetFileName(text)}...";
+
+                var success = await _apiClient.SendFileMessageAsync(_currentContactId, text);
+                
+                if (success)
+                {
+                    if (_selectedFileTextBlock != null)
+                        _selectedFileTextBlock.Text = "";
+                    
+                    await Task.Delay(500);
+                    await LoadMessagesForContact(_currentContactId);
+                    await LoadContactsAsync();
+                }
+                else
+                {
+                    if (_selectedFileTextBlock != null)
+                        _selectedFileTextBlock.Text = "Failed to send file.";
+                }
                 return;
             }
+
+            // If no valid content found in clipboard
+            if (_selectedFileTextBlock != null)
+                _selectedFileTextBlock.Text = "No file or image found in clipboard. Copy a file from Windows Explorer.";
         }
-        if (_selectedFileTextBlock != null)
-            _selectedFileTextBlock.Text = "Clipboard does not contain a file path.\n(Pasting files or images from Explorer is not supported by Avalonia clipboard API.)";
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error pasting file: {ex.Message}");
+            if (_selectedFileTextBlock != null)
+                _selectedFileTextBlock.Text = $"Error: {ex.Message}";
+        }
     }
 
     private async void DownloadButton_Click(object? sender, RoutedEventArgs e)
