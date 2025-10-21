@@ -7,6 +7,7 @@ using Avalonia.Platform;
 using Avalonia.Threading;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -31,9 +32,10 @@ public class TrayManager
         _apiClient = new ApiClient(_configManager);
 
         // Create tray icon
+        var iconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Fe-Icon-iOS-ClearDark-20x20@2x.png");
         _trayIcon = new TrayIcon
         {
-            Icon = CreateTrayIconImage(),
+            Icon = new WindowIcon(File.OpenRead(iconPath)),
             ToolTipText = "Fe Chat Client",
             IsVisible = true
         };

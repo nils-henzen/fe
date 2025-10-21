@@ -12,6 +12,9 @@
 
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
+    <None Update="Assets\Fe-Icon-iOS-ClearDark-20x20@2x.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
