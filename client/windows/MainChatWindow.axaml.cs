@@ -1,0 +1,834 @@
+﻿using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Layout;
+using Avalonia.Markup.Xaml;
+using System;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading.Tasks;
+using Avalonia.Threading;
+using System.Runtime.InteropServices;
+using System.Collections.Specialized;
+
+namespace FeChat;
+
+// Windows Clipboard Helper using P/Invoke
+internal static class WindowsClipboardHelper
+{
+    [DllImport("user32.dll")]
+    private static extern bool OpenClipboard(IntPtr hWndNewOwner);
+
+    [DllImport("user32.dll")]
+    private static extern bool CloseClipboard();
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetClipboardData(uint uFormat);
+
+    [DllImport("user32.dll")]
+    private static extern bool IsClipboardFormatAvailable(uint format);
+
+    [DllImport("shell32.dll", CharSet = CharSet.Auto)]
+    private static extern uint DragQueryFile(IntPtr hDrop, uint iFile, System.Text.StringBuilder lpszFile, int cch);
+
+    private const uint CF_HDROP = 15;
+    private const uint CF_BITMAP = 2;
+    private const uint CF_DIB = 8;
+
+    public static string[] GetFileDropList()
+    {
+        var files = new System.Collections.Generic.List<string>();
+        
+        if (!OpenClipboard(IntPtr.Zero))
+            return files.ToArray();
+
+        try
+        {
+            if (IsClipboardFormatAvailable(CF_HDROP))
+            {
+                IntPtr hDrop = GetClipboardData(CF_HDROP);
+                if (hDrop != IntPtr.Zero)
+                {
+                    uint fileCount = DragQueryFile(hDrop, 0xFFFFFFFF, null, 0);
+                    for (uint i = 0; i < fileCount; i++)
+                    {
+                        var sb = new System.Text.StringBuilder(260);
+                        if (DragQueryFile(hDrop, i, sb, sb.Capacity) > 0)
+                        {
+                            files.Add(sb.ToString());
+                        }
+                    }
+                }
+            }
+        }
+        finally
+        {
+            CloseClipboard();
+        }
+
+        return files.ToArray();
+    }
+
+    public static bool HasFiles()
+    {
+        return IsClipboardFormatAvailable(CF_HDROP);
+    }
+}
+
+public partial class MainChatWindow : Window
+{
+    private readonly ApiClient _apiClient;
+    private readonly ConfigManager _configManager;
+    private ListBox? _contactsListBox;
+    private Button? _newChatButton;
+    private Button? _refreshButton;
+    private Button? _sendButton;
+    private TextBox? _messageInputBox;
+    private ItemsControl? _messagesItemsControl;
+    private ScrollViewer? _messageScrollViewer;
+    private Border? _chatHeaderBorder;
+    private Border? _inputAreaBorder;
+    private Panel? _emptyStatePanel;
+    private TextBlock? _chatContactNameText;
+    private TextBlock? _chatContactInitialText;
+    private Border? _titleBar;
+    private Button? _closeButton;
+    private ComposePanel? _composePanel;
+    private Button? _selectFileButton;
+    private Button? _pasteFileButton;
+    private TextBlock? _selectedFileTextBlock;
+
+    private ObservableCollection<Contact> _contacts = new();
+    private ObservableCollection<ChatMessage> _messages = new();
+    private string? _currentContactId;
+    private string? _selectedFilePath;
+
+    public MainChatWindow(ApiClient apiClient, ConfigManager configManager)
+    {
+        _apiClient = apiClient;
+        _configManager = configManager;
+
+        InitializeComponent();
+        AttachEventHandlers();
+
+        // Load contacts on startup
+        _ = LoadContactsAsync();
+    }
+
+    private void InitializeComponent()
+    {
+        AvaloniaXamlLoader.Load(this);
+
+        _contactsListBox = this.FindControl<ListBox>("ContactsListBox");
+        _newChatButton = this.FindControl<Button>("NewChatButton");
+        _refreshButton = this.FindControl<Button>("RefreshButton");
+        _sendButton = this.FindControl<Button>("SendButton");
+        _messageInputBox = this.FindControl<TextBox>("MessageInputBox");
+        _messagesItemsControl = this.FindControl<ItemsControl>("MessagesItemsControl");
+        _messageScrollViewer = this.FindControl<ScrollViewer>("MessageScrollViewer");
+        _chatHeaderBorder = this.FindControl<Border>("ChatHeaderBorder");
+        _inputAreaBorder = this.FindControl<Border>("InputAreaBorder");
+        _emptyStatePanel = this.FindControl<Panel>("EmptyStatePanel");
+        _chatContactNameText = this.FindControl<TextBlock>("ChatContactNameText");
+        _chatContactInitialText = this.FindControl<TextBlock>("ChatContactInitialText");
+        _titleBar = this.FindControl<Border>("TitleBar");
+        _closeButton = this.FindControl<Button>("CloseButton");
+        _composePanel = this.FindControl<ComposePanel>("ComposePanel");
+        _selectFileButton = this.FindControl<Button>("SelectFileButton");
+        _pasteFileButton = this.FindControl<Button>("PasteFileButton");
+        _selectedFileTextBlock = this.FindControl<TextBlock>("SelectedFileTextBlock");
+
+        if (_contactsListBox != null)
+            _contactsListBox.ItemsSource = _contacts;
+
+        if (_messagesItemsControl != null)
+            _messagesItemsControl.ItemsSource = _messages;
+    }
+
+    private void AttachEventHandlers()
+    {
+        if (_newChatButton != null)
+            _newChatButton.Click += NewChatButton_Click;
+        if (_composePanel != null)
+        {
+            _composePanel.SendClicked += ComposePanel_SendClicked;
+            _composePanel.SendFileClicked += ComposePanel_SendFileClicked;
+            _composePanel.CancelClicked += ComposePanel_CancelClicked;
+        }
+
+        if (_refreshButton != null)
+            _refreshButton.Click += RefreshButton_Click;
+
+        if (_sendButton != null)
+            _sendButton.Click += SendButton_Click;
+
+        if (_messageInputBox != null)
+            _messageInputBox.KeyDown += MessageInputBox_KeyDown;
+
+        if (_contactsListBox != null)
+            _contactsListBox.SelectionChanged += ContactsListBox_SelectionChanged;
+
+        if (_closeButton != null)
+            _closeButton.Click += (_, _) => Hide();
+
+        if (_selectFileButton != null)
+            _selectFileButton.Click += OnSelectFileClicked;
+        if (_pasteFileButton != null)
+            _pasteFileButton.Click += OnPasteFileClicked;
+
+        // Make title bar draggable
+        if (_titleBar != null)
+        {
+            _titleBar.PointerPressed += (sender, e) =>
+            {
+                if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+                {
+                    BeginMoveDrag(e);
+                }
+            };
+        }
+
+        // Handle window deactivation to hide window
+        this.Deactivated += (_, _) =>
+        {
+            if (!IsPointerOver)
+            {
+                Hide();
+            }
+        };
+    }
+
+    public void PositionNearTrayIcon()
+    {
+        // Get screen working area (excludes taskbar)
+        var screen = Screens.Primary;
+        if (screen == null) return;
+
+        var workingArea = screen.WorkingArea;
+        var scalingFactor = screen.Scaling;
+
+        // Position at bottom-right corner, above taskbar
+        var windowWidth = Width * scalingFactor;
+        var windowHeight = Height * scalingFactor;
+
+        var left = (workingArea.Right - windowWidth - 10) / scalingFactor;
+        var top = (workingArea.Bottom - windowHeight - 10) / scalingFactor;
+
+        Position = new PixelPoint((int)left, (int)top);
+    }
+
+    private void NewChatButton_Click(object? sender, RoutedEventArgs e)
+    {
+        // Hide chat/message UI and show compose panel
+        if (_chatHeaderBorder != null) _chatHeaderBorder.IsVisible = false;
+        if (_emptyStatePanel != null) _emptyStatePanel.IsVisible = false;
+        if (_messageScrollViewer != null) _messageScrollViewer.IsVisible = false;
+        if (_inputAreaBorder != null) _inputAreaBorder.IsVisible = false;
+        if (_composePanel != null)
+        {
+            _composePanel.Clear();
+            _composePanel.IsVisible = true;
+        }
+    }
+
+    private async void ComposePanel_SendClicked(object? sender, (string recipient, string message) args)
+    {
+        // Hide compose panel and restore chat/message UI
+        if (_composePanel != null) _composePanel.IsVisible = false;
+        ShowChatUI(args.recipient);
+        // Send the text message to the backend
+        if (!string.IsNullOrWhiteSpace(args.recipient) && !string.IsNullOrWhiteSpace(args.message))
+        {
+            var success = await _apiClient.SendMessageAsync(args.recipient, args.message);
+            if (success)
+            {
+                _composePanel?.Clear();
+                // Optionally refresh messages or show feedback
+            }
+            else
+            {
+                // Optionally show error feedback
+            }
+        }
+    }
+
+    private void ComposePanel_CancelClicked(object? sender, EventArgs e)
+    {
+        // Hide compose panel and restore chat/message UI
+        if (_composePanel != null) _composePanel.IsVisible = false;
+        ShowDefaultUI();
+    }
+
+    private async void ComposePanel_SendFileClicked(object? sender, (string recipient, string filePath) e)
+    {
+        if (string.IsNullOrWhiteSpace(e.recipient) || string.IsNullOrWhiteSpace(e.filePath))
+            return;
+        var success = await _apiClient.SendFileMessageAsync(e.recipient, e.filePath);
+        if (success)
+        {
+            _composePanel?.Clear();
+            // Optionally refresh messages or show feedback
+        }
+        else
+        {
+            // Optionally show error feedback
+        }
+    }
+
+    private void ShowChatUI(string contactId)
+    {
+        // Show chat UI for the given contact
+        if (_chatHeaderBorder != null) _chatHeaderBorder.IsVisible = true;
+        if (_messageScrollViewer != null) _messageScrollViewer.IsVisible = true;
+        if (_inputAreaBorder != null) _inputAreaBorder.IsVisible = true;
+        if (_emptyStatePanel != null) _emptyStatePanel.IsVisible = false;
+        // Set contact info, load messages, etc.
+        _currentContactId = contactId;
+        // ...existing logic to load messages for contactId...
+    }
+
+    private void ShowDefaultUI()
+    {
+        // Show empty state or last selected chat
+        if (_emptyStatePanel != null) _emptyStatePanel.IsVisible = true;
+        if (_chatHeaderBorder != null) _chatHeaderBorder.IsVisible = false;
+        if (_messageScrollViewer != null) _messageScrollViewer.IsVisible = false;
+        if (_inputAreaBorder != null) _inputAreaBorder.IsVisible = false;
+    }
+
+    private async void RefreshButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_currentContactId != null)
+        {
+            await LoadMessagesForContact(_currentContactId);
+        }
+        await LoadContactsAsync();
+    }
+
+    private async void SendButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_currentContactId == null) return;
+        if (!string.IsNullOrEmpty(_selectedFilePath))
+        {
+            var success = await _apiClient.SendFileMessageAsync(_currentContactId, _selectedFilePath);
+            if (success)
+            {
+                _selectedFilePath = null;
+                if (_selectedFileTextBlock != null)
+                    _selectedFileTextBlock.Text = string.Empty;
+                // Optionally refresh messages or show feedback
+            }
+            else
+            {
+                if (_selectedFileTextBlock != null)
+                    _selectedFileTextBlock.Text = "Failed to send file.";
+            }
+            return;
+        }
+        var messageText = _messageInputBox?.Text?.Trim();
+        if (string.IsNullOrEmpty(messageText)) return;
+        if (_sendButton != null)
+            _sendButton.IsEnabled = false;
+        try
+        {
+            var success = await _apiClient.SendMessageAsync(_currentContactId, messageText);
+
+            if (success)
+            {
+                _messages.Add(new ChatMessage
+                {
+                    Text = messageText,
+                    Time = DateTime.Now.ToString("HH:mm"),
+                    IsSentByMe = true
+                });
+
+                if (_messageInputBox != null)
+                    _messageInputBox.Text = "";
+
+                ScrollToBottom();
+
+                await Task.Delay(500);
+                await LoadMessagesForContact(_currentContactId);
+                await LoadContactsAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error sending message: {ex.Message}");
+        }
+        finally
+        {
+            if (_sendButton != null)
+                _sendButton.IsEnabled = true;
+
+            _messageInputBox?.Focus();
+        }
+    }
+
+    private void MessageInputBox_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && !e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+        {
+            e.Handled = true;
+            SendButton_Click(sender, new RoutedEventArgs());
+        }
+    }
+
+    private async void ContactsListBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_contactsListBox?.SelectedItem is Contact contact)
+        {
+            await OpenChat(contact.ContactId);
+        }
+    }
+
+    private async Task OpenChat(string contactId)
+    {
+        _currentContactId = contactId;
+
+        // Update UI
+        if (_chatContactNameText != null)
+            _chatContactNameText.Text = contactId;
+
+        if (_chatContactInitialText != null)
+            _chatContactInitialText.Text = string.IsNullOrEmpty(contactId) ? "?" : contactId[0].ToString().ToUpper();
+
+        // Show chat UI, hide empty state
+        if (_emptyStatePanel != null)
+            _emptyStatePanel.IsVisible = false;
+
+        if (_chatHeaderBorder != null)
+            _chatHeaderBorder.IsVisible = true;
+
+        if (_messageScrollViewer != null)
+            _messageScrollViewer.IsVisible = true;
+
+        if (_inputAreaBorder != null)
+            _inputAreaBorder.IsVisible = true;
+
+        // Load messages
+        await LoadMessagesForContact(contactId);
+    }
+
+    public async Task LoadContactsAsync()
+    {
+        try
+        {
+            var messages = await _apiClient.FetchMessagesAsync();
+
+            if (messages != null && messages.Any())
+            {
+                var currentUserId = _configManager.GetConfig().UserId;
+
+                // Alle Kontakt-IDs sammeln, inkl. eigener UserId, falls relevant
+                var contactIds = messages
+                    .SelectMany(m => new[] { m.SenderId, m.ReceiverId })
+                    .Where(id => !string.IsNullOrEmpty(id))
+                    .Distinct()
+                    .ToList();
+
+                // Optional: Nur Kontakte anzeigen, mit denen es Konversationen gibt
+                // (also Nachrichten, die nicht nur von dir an andere gehen)
+
+                var contactGroups = contactIds
+                    .Select(contactId =>
+                    {
+                        var contactMessages = messages
+                            .Where(m => (m.SenderId == currentUserId && m.ReceiverId == contactId) ||
+                                        (m.SenderId == contactId && m.ReceiverId == currentUserId))
+                            .OrderByDescending(m => long.TryParse(m.Timestamp, out var ts) ? ts : 0)
+                            .ToList();
+
+                        var lastMsg = contactMessages.FirstOrDefault();
+                        return new Contact
+                        {
+                            ContactId = contactId,
+                            LastMessage = lastMsg != null && lastMsg.DisplayText.Length > 35
+                                ? lastMsg.DisplayText.Substring(0, 32) + "..."
+                                : lastMsg?.DisplayText ?? string.Empty,
+                            LastMessageTime = lastMsg != null ? FormatTime(lastMsg.Timestamp) : string.Empty,
+                            UnreadCount = 0
+                        };
+                    })
+                    .OrderByDescending(c => c.LastMessageTime)
+                    .ToList();
+
+                _contacts.Clear();
+                foreach (var contact in contactGroups)
+                {
+                    _contacts.Add(contact);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading contacts: {ex.Message}");
+        }
+    }
+
+    private async Task LoadMessagesForContact(string contactId)
+    {
+        try
+        {
+            if (_refreshButton != null)
+                _refreshButton.IsEnabled = false;
+
+            var messages = await _apiClient.FetchMessagesAsync();
+
+            if (messages != null && messages.Any())
+            {
+                var currentUserId = _configManager.GetConfig().UserId;
+
+                var conversationMessages = messages
+                    .Where(m => (m.SenderId == currentUserId && m.ReceiverId == contactId) ||
+                               (m.SenderId == contactId && m.ReceiverId == currentUserId))
+                    .OrderBy(m => long.TryParse(m.Timestamp, out var ts) ? ts : 0)
+                    .ToList();
+
+                _messages.Clear();
+
+                foreach (var msg in conversationMessages)
+                {
+                    var chatMsg = new ChatMessage
+                    {
+                        MessageId = msg.Id,
+                        Text = msg.DisplayText,
+                        Time = FormatMessageTime(msg.Timestamp),
+                        IsSentByMe = msg.SenderId == currentUserId,
+                        FileName = msg.FileName,
+                        FileType = msg.FileType,
+                        FileContents = msg.FileContents
+                    };
+                    
+                    _messages.Add(chatMsg);
+                }
+
+                await Task.Delay(100);
+                ScrollToBottom();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading messages: {ex.Message}");
+        }
+        finally
+        {
+            if (_refreshButton != null)
+                _refreshButton.IsEnabled = true;
+        }
+    }
+
+    private string FormatTime(string timestamp)
+    {
+        DateTime dt;
+        if (DateTime.TryParse(timestamp, out dt))
+        {
+            var now = DateTime.Now;
+            var diff = now - dt;
+
+            if (diff.TotalMinutes < 1)
+                return "Just now";
+            else if (diff.TotalHours < 1)
+                return $"{(int)diff.TotalMinutes}m ago";
+            else if (diff.TotalDays < 1)
+                return $"{(int)diff.TotalHours}h ago";
+            else if (diff.TotalDays < 7)
+                return $"{(int)diff.TotalDays}d ago";
+            else
+                return dt.ToString("MMM d");
+        }
+        // Try to parse as Unix timestamp (seconds since epoch)
+        if (long.TryParse(timestamp, out var unixSeconds))
+        {
+            try
+            {
+                dt = DateTimeOffset.FromUnixTimeSeconds(unixSeconds).LocalDateTime;
+                var now = DateTime.Now;
+                var diff = now - dt;
+                if (diff.TotalMinutes < 1)
+                    return "Just now";
+                else if (diff.TotalHours < 1)
+                    return $"{(int)diff.TotalMinutes}m ago";
+                else if (diff.TotalDays < 1)
+                    return $"{(int)diff.TotalHours}h ago";
+                else if (diff.TotalDays < 7)
+                    return $"{(int)diff.TotalDays}d ago";
+                else
+                    return dt.ToString("MMM d");
+            }
+            catch { }
+        }
+        return timestamp;
+    }
+
+    private string FormatMessageTime(string timestamp)
+    {
+        DateTime dt;
+        if (DateTime.TryParse(timestamp, out dt))
+        {
+            var now = DateTime.Now;
+            if (dt.Date == now.Date)
+                return dt.ToString("HH:mm");
+            else if (dt.Date == now.AddDays(-1).Date)
+                return "Yesterday " + dt.ToString("HH:mm");
+            else
+                return dt.ToString("MMM d, HH:mm");
+        }
+        // Try to parse as Unix timestamp (seconds since epoch)
+        if (long.TryParse(timestamp, out var unixSeconds))
+        {
+            try
+            {
+                dt = DateTimeOffset.FromUnixTimeSeconds(unixSeconds).LocalDateTime;
+                var now = DateTime.Now;
+                if (dt.Date == now.Date)
+                    return dt.ToString("HH:mm");
+                else if (dt.Date == now.AddDays(-1).Date)
+                    return "Yesterday " + dt.ToString("HH:mm");
+                else
+                    return dt.ToString("MMM d, HH:mm");
+            }
+            catch { }
+        }
+        return timestamp;
+    }
+
+    private void ScrollToBottom()
+    {
+        if (_messageScrollViewer != null)
+        {
+            // Scroll to the very end
+            _messageScrollViewer.ScrollToEnd();
+            
+            // Force another scroll after a short delay to ensure content is rendered
+            Dispatcher.UIThread.Post(() => 
+            {
+                _messageScrollViewer?.ScrollToEnd();
+            }, Avalonia.Threading.DispatcherPriority.Background);
+        }
+    }
+
+    private async void OnSelectFileClicked(object? sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog();
+        dialog.AllowMultiple = false;
+        var result = await dialog.ShowAsync(this);
+        if (result != null && result.Length > 0)
+        {
+            _selectedFilePath = result[0];
+            if (_selectedFileTextBlock != null)
+                _selectedFileTextBlock.Text = $"Selected: {System.IO.Path.GetFileName(_selectedFilePath)}";
+        }
+    }
+
+    private async void OnPasteFileClicked(object? sender, RoutedEventArgs e)
+    {
+        if (_currentContactId == null)
+        {
+            if (_selectedFileTextBlock != null)
+                _selectedFileTextBlock.Text = "Please select a contact first.";
+            return;
+        }
+
+        try
+        {
+            // Try Windows-specific clipboard for files (works when copying files in Explorer)
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                if (WindowsClipboardHelper.HasFiles())
+                {
+                    var files = WindowsClipboardHelper.GetFileDropList();
+                    if (files != null && files.Length > 0)
+                    {
+                        var filePath = files[0];
+                        Console.WriteLine($"Got file from Windows clipboard: {filePath}");
+                        
+                        if (_selectedFileTextBlock != null)
+                            _selectedFileTextBlock.Text = $"Sending: {System.IO.Path.GetFileName(filePath)}...";
+
+                        var success = await _apiClient.SendFileMessageAsync(_currentContactId, filePath);
+                        
+                        if (success)
+                        {
+                            if (_selectedFileTextBlock != null)
+                                _selectedFileTextBlock.Text = "";
+                            
+                            await Task.Delay(500);
+                            await LoadMessagesForContact(_currentContactId);
+                            await LoadContactsAsync();
+                        }
+                        else
+                        {
+                            if (_selectedFileTextBlock != null)
+                                _selectedFileTextBlock.Text = "Failed to send file.";
+                        }
+                        return;
+                    }
+                }
+            }
+
+            // Fallback to Avalonia clipboard API
+            var clipboard = this.Clipboard;
+            if (clipboard == null)
+            {
+                if (_selectedFileTextBlock != null)
+                    _selectedFileTextBlock.Text = "Clipboard not available.";
+                return;
+            }
+
+            // Get all available formats for debugging
+            var formats = await clipboard.GetFormatsAsync();
+            Console.WriteLine($"Available clipboard formats: {string.Join(", ", formats)}");
+
+            // Try to get image from clipboard - try multiple common formats
+            foreach (var format in formats)
+            {
+                Console.WriteLine($"Trying format: {format}");
+                
+                // Try common image format names
+                if (format.Contains("image", StringComparison.OrdinalIgnoreCase) || 
+                    format.Contains("png", StringComparison.OrdinalIgnoreCase) ||
+                    format.Contains("bitmap", StringComparison.OrdinalIgnoreCase) ||
+                    format.Contains("dib", StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        var imageData = await clipboard.GetDataAsync(format);
+                        Console.WriteLine($"Got data for format {format}: {imageData?.GetType().Name}");
+                        
+                        if (imageData is Avalonia.Media.Imaging.Bitmap bitmap)
+                        {
+                            if (_selectedFileTextBlock != null)
+                                _selectedFileTextBlock.Text = "Sending image from clipboard...";
+
+                            // Save bitmap to temporary file
+                            var tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"clipboard_image_{DateTime.Now:yyyyMMddHHmmss}.png");
+                            
+                            using (var stream = System.IO.File.Create(tempPath))
+                            {
+                                bitmap.Save(stream);
+                            }
+
+                            var success = await _apiClient.SendFileMessageAsync(_currentContactId, tempPath);
+                            
+                            // Clean up temp file
+                            try { System.IO.File.Delete(tempPath); } catch { }
+                            
+                            if (success)
+                            {
+                                if (_selectedFileTextBlock != null)
+                                    _selectedFileTextBlock.Text = "";
+                                
+                                await Task.Delay(500);
+                                await LoadMessagesForContact(_currentContactId);
+                                await LoadContactsAsync();
+                            }
+                            else
+                            {
+                                if (_selectedFileTextBlock != null)
+                                    _selectedFileTextBlock.Text = "Failed to send image.";
+                            }
+                            return;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error reading format {format}: {ex.Message}");
+                    }
+                }
+            }
+
+            // Try to get file path from clipboard text
+            var text = await clipboard.GetTextAsync();
+            if (!string.IsNullOrWhiteSpace(text) && System.IO.File.Exists(text))
+            {
+                if (_selectedFileTextBlock != null)
+                    _selectedFileTextBlock.Text = $"Sending: {System.IO.Path.GetFileName(text)}...";
+
+                var success = await _apiClient.SendFileMessageAsync(_currentContactId, text);
+                
+                if (success)
+                {
+                    if (_selectedFileTextBlock != null)
+                        _selectedFileTextBlock.Text = "";
+                    
+                    await Task.Delay(500);
+                    await LoadMessagesForContact(_currentContactId);
+                    await LoadContactsAsync();
+                }
+                else
+                {
+                    if (_selectedFileTextBlock != null)
+                        _selectedFileTextBlock.Text = "Failed to send file.";
+                }
+                return;
+            }
+
+            // If no valid content found in clipboard
+            if (_selectedFileTextBlock != null)
+                _selectedFileTextBlock.Text = "No file or image found in clipboard. Copy a file from Windows Explorer.";
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error pasting file: {ex.Message}");
+            if (_selectedFileTextBlock != null)
+                _selectedFileTextBlock.Text = $"Error: {ex.Message}";
+        }
+    }
+
+    private async void DownloadButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || button.Tag is not ChatMessage message)
+            return;
+
+        if (!message.IsDownloadableFile)
+            return;
+
+        try
+        {
+            // Get the Downloads folder path
+            var downloadsPath = System.IO.Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                "Downloads");
+            
+            // Create downloads folder if it doesn't exist
+            if (!System.IO.Directory.Exists(downloadsPath))
+                System.IO.Directory.CreateDirectory(downloadsPath);
+            
+            // Create the full file path
+            var filePath = System.IO.Path.Combine(downloadsPath, message.FileName ?? "download");
+            
+            // If file already exists, add a number to the filename
+            if (System.IO.File.Exists(filePath))
+            {
+                var fileNameWithoutExt = System.IO.Path.GetFileNameWithoutExtension(message.FileName);
+                var extension = System.IO.Path.GetExtension(message.FileName);
+                var counter = 1;
+                
+                do
+                {
+                    filePath = System.IO.Path.Combine(downloadsPath, $"{fileNameWithoutExt} ({counter}){extension}");
+                    counter++;
+                } while (System.IO.File.Exists(filePath));
+            }
+            
+            // Download the file from the server using the message ID
+            var fileBytes = await _apiClient.DownloadFileAsync(message.MessageId);
+            
+            if (fileBytes != null)
+            {
+                await System.IO.File.WriteAllBytesAsync(filePath, fileBytes);
+                Console.WriteLine($"File downloaded successfully: {filePath}");
+            }
+            else
+            {
+                Console.WriteLine($"Failed to download file: {message.FileName}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error downloading file: {ex.Message}");
+        }
+    }
+}

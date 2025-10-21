@@ -1,0 +1,15 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="FeChat.ComposePanel">
+  <Border Padding="20">
+    <StackPanel Spacing="10">
+      <TextBlock Text="New Chat" FontSize="20" FontWeight="Bold" Margin="0,0,0,10"/>
+      <TextBox Name="RecipientTextBox" Watermark="Recipient ID or name..."/>
+      <TextBox Name="MessageTextBox" Watermark="Type your message..." AcceptsReturn="True" Height="80"/>
+      <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
+        <Button Name="SendButton" Content="Send" Width="80"/>
+        <Button Name="CancelButton" Content="Cancel" Width="80"/>
+      </StackPanel>
+    </StackPanel>
+  </Border>
+</UserControl>

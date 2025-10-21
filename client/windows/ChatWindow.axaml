@@ -1,0 +1,147 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:FeChat"
+        x:Class="FeChat.ChatWindow"
+        Width="600" Height="700"
+        MinWidth="400" MinHeight="500"
+        WindowStartupLocation="CenterScreen"
+        Background="#F5F5F5">
+
+    <Window.Styles>
+        <Style Selector="Button">
+            <Setter Property="Background" Value="#0078D4"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+
+        <Style Selector="Button:pointerover">
+            <Setter Property="Background" Value="#106EBE"/>
+        </Style>
+
+        <Style Selector="Button.icon">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#505050"/>
+            <Setter Property="Padding" Value="8"/>
+            <Setter Property="MinWidth" Value="40"/>
+        </Style>
+
+        <Style Selector="Button.icon:pointerover">
+            <Setter Property="Background" Value="#F0F0F0"/>
+        </Style>
+
+        <Style Selector="TextBox">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#E0E0E0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12"/>
+            <Setter Property="CornerRadius" Value="20"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- Header -->
+        <Border Grid.Row="0"
+                Background="White"
+                BorderBrush="#E0E0E0"
+                BorderThickness="0,0,0,1"
+                Padding="20,15">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <!-- Avatar -->
+                <Border Grid.Column="0"
+                        Width="40" Height="40"
+                        CornerRadius="20"
+                        Background="#0078D4"
+                        VerticalAlignment="Center">
+                    <TextBlock Name="ContactInitialText"
+                               Foreground="White"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"/>
+                </Border>
+
+                <!-- Contact Name -->
+                <TextBlock Grid.Column="1"
+                           Name="ContactNameText"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                           Foreground="#202020"
+                           VerticalAlignment="Center"
+                           Margin="15,0,0,0"/>
+
+                <!-- Refresh Button -->
+                <Button Grid.Column="2"
+                        Name="RefreshButton"
+                        Content="↻"
+                        Classes="icon"
+                        FontSize="18"
+                        ToolTip.Tip="Refresh messages"/>
+            </Grid>
+        </Border>
+
+        <!-- Messages Area -->
+        <ScrollViewer Grid.Row="1"
+                      Name="MessageScrollViewer"
+                      Padding="20,20,20,0"
+                      Background="#E5DDD5"
+                      ClipToBounds="False">
+            <ItemsControl Name="MessagesItemsControl" Margin="0,0,0,100" ClipToBounds="False">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="local:ChatMessage">
+                        <Border Margin="0,5"
+                                HorizontalAlignment="{Binding Alignment}">
+                            <Border Background="{Binding BubbleColor}"
+                                    CornerRadius="8"
+                                    Padding="12,8"
+                                    MaxWidth="400">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Text}"
+                                               TextWrapping="Wrap"
+                                               FontSize="14"
+                                               Foreground="#202020"/>
+                                    <TextBlock Text="{Binding Time}"
+                                               FontSize="11"
+                                               Foreground="#707070"
+                                               HorizontalAlignment="Right"
+                                               Margin="0,4,0,0"/>
+                                </StackPanel>
+                            </Border>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <!-- Input Area -->
+        <Border Grid.Row="2"
+                Background="White"
+                BorderBrush="#E0E0E0"
+                BorderThickness="0,1,0,0"
+                Padding="20,15">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBox Grid.Column="0"
+                         Name="MessageInputBox"
+                         Watermark="Type a message..."
+                         FontSize="14"
+                         MinHeight="40"
+                         MaxHeight="120"
+                         AcceptsReturn="False"
+                         TextWrapping="Wrap"
+                         VerticalContentAlignment="Center"/>
+                <Button Grid.Column="1"
+                        Name="SendButton"
+                        Content="Send"
+                        FontSize="14"
+                        MinWidth="80"
+                        Margin="10,0,0,0"/>
+            </Grid>
+        </Border>
+
+    </Grid>
+
+</Window>
+
